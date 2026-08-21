@@ -28,7 +28,15 @@ export interface DitherSettings {
   ink: string
   paper: string
   paletteId: string
+  /** Hex colours used when `paletteId` is "custom". */
+  customColors: string[]
 }
+
+export const CUSTOM_PALETTE_ID = "custom"
+export const MIN_CUSTOM_COLORS = 2
+export const MAX_CUSTOM_COLORS = 8
+
+export const DEFAULT_CUSTOM_COLORS = ["#12100e", "#3f5e5a", "#d98e4a", "#f2e8dc"]
 
 export const DEFAULT_SETTINGS: DitherSettings = {
   methodId: DEFAULT_METHOD_ID,
@@ -46,6 +54,7 @@ export const DEFAULT_SETTINGS: DitherSettings = {
   ink: "#000000",
   paper: "#ffffff",
   paletteId: "mono",
+  customColors: DEFAULT_CUSTOM_COLORS,
 }
 
 /** Longest edge of the dither grid at pixelSize 1. */
@@ -85,10 +94,23 @@ export function ditherResolution(
   }
 }
 
+const FALLBACK: RGB[] = [
+  [0, 0, 0],
+  [255, 255, 255],
+]
+
 export function resolvePalette(settings: DitherSettings): RGB[] {
   if (settings.colorMode === "duotone") {
     return [hexToRgb(settings.ink), hexToRgb(settings.paper)]
   }
+
+  if (settings.paletteId === CUSTOM_PALETTE_ID) {
+    // Every kernel assumes at least two entries to choose between.
+    return settings.customColors.length >= MIN_CUSTOM_COLORS
+      ? settings.customColors.map(hexToRgb)
+      : FALLBACK
+  }
+
   return getPalette(settings.paletteId).colors
 }
 

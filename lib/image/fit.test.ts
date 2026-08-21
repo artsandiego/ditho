@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { letterbox } from "./fit"
+import { clampPan, letterbox, zoomAbout } from "./fit"
 
 const box = { width: 1000, height: 600 }
 
@@ -33,5 +33,43 @@ describe("letterbox", () => {
     const fit = letterbox({ width: 1040, height: 764 }, 1)
 
     expect(fit.width).toBe(fit.height)
+  })
+})
+
+describe("clampPan", () => {
+  it("centres content smaller than its container", () => {
+    expect(clampPan(-999, 400, 1000)).toBe(300)
+    expect(clampPan(50, 400, 1000)).toBe(300)
+  })
+
+  it("never leaves a gap once the content is larger", () => {
+    expect(clampPan(200, 1500, 1000)).toBe(0)
+    expect(clampPan(-900, 1500, 1000)).toBe(-500)
+  })
+
+  it("leaves a valid position alone", () => {
+    expect(clampPan(-250, 1500, 1000)).toBe(-250)
+  })
+})
+
+describe("zoomAbout", () => {
+  it("holds the point under the cursor still", () => {
+    const origin = -100
+    const pointer = 250
+    const next = zoomAbout(origin, pointer, 2, 4)
+
+    // The same image coordinate must land back under the cursor.
+    const before = (pointer - origin) / 2
+    const after = (pointer - next) / 4
+
+    expect(after).toBeCloseTo(before, 9)
+  })
+
+  it("is a no-op when the zoom does not change", () => {
+    expect(zoomAbout(-100, 250, 3, 3)).toBe(-100)
+  })
+
+  it("moves toward the cursor when zooming in", () => {
+    expect(zoomAbout(0, 100, 1, 2)).toBe(-100)
   })
 })

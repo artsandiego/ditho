@@ -60,9 +60,24 @@ grey ramps, and others — diffusing error across R, G and B. Nearest-colour use
 luminance-weighted distance; plain Euclidean RGB over-weights blue and turns
 skies muddy.
 
+**Custom** builds a set of two to eight colours of your own. Choosing it copies
+whichever palette you were on, so tweaking an existing one does not mean
+retyping it — but only while the custom colours are untouched. Once edited they
+are never overwritten.
+
 Halftone sorts the palette into a luminance ramp and screens each cell between
 the two levels that bracket it, so a four-colour set halftones across all four
 rather than collapsing to its extremes.
+
+## Inspecting the result
+
+Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**
+to reset. It is view-only: the dither and the exported PNG are unaffected.
+
+Panning writes straight to the element rather than going through React state,
+so dragging does not re-render the tree on every pointer move. The view
+survives a change of method or cell size — the point is comparing two settings
+at the same magnification — and resets on a new crop.
 
 ## Layout
 
@@ -74,6 +89,7 @@ rather than collapsing to its extremes.
 | `lib/dither/palette.ts` | Palettes, nearest-colour, bracketing |
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG export |
+| `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 
 Every kernel takes a plain `{ data, width, height }` and is free of DOM calls,

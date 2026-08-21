@@ -27,6 +27,8 @@ export default function Home() {
   const [source, setSource] = useState<LoadedImage | null>(null)
   const [cropState, setCropState] = useState<CropState | null>(null)
   const [cropped, setCropped] = useState<HTMLCanvasElement | null>(null)
+  // Bumped per crop so the preview remounts with a fresh zoom and pan.
+  const [cropSerial, setCropSerial] = useState(0)
   const [settings, setSettings] = useState<DitherSettings>(DEFAULT_SETTINGS)
   const [busy, setBusy] = useState(false)
 
@@ -66,6 +68,7 @@ export default function Home() {
     if (!source || !cropState?.area) return
     try {
       setCropped(cropToCanvas(source.element, cropState.area))
+      setCropSerial((serial) => serial + 1)
       setStage("edit")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not apply that crop.")
@@ -175,7 +178,7 @@ export default function Home() {
             {/* Insets rather than padding: the canvas sizes off this box, and a
                 padded box would make 100% height overflow it. */}
             <div className="absolute inset-5 lg:inset-10">
-              <DitherCanvas result={result} />
+              <DitherCanvas key={cropSerial} result={result} />
             </div>
           </section>
 

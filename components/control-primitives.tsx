@@ -128,6 +128,35 @@ export function Choice<T extends string>({
   )
 }
 
+/** A bare colour chip that opens the native picker. */
+export function ColorChip({
+  value,
+  label,
+  onChange,
+  className,
+}: {
+  value: string
+  label: string
+  onChange: (value: string) => void
+  className?: string
+}) {
+  return (
+    <label
+      title={value.toUpperCase()}
+      className={`block cursor-pointer border border-white/15 transition-colors hover:border-white/40 ${className ?? ""}`}
+      style={{ background: value }}
+    >
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="sr-only"
+        aria-label={label}
+      />
+    </label>
+  )
+}
+
 export function Swatch({
   label,
   value,
