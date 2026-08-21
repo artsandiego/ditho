@@ -1,16 +1,65 @@
-import { floydSteinberg } from "./floyd-steinberg"
-import type { DitherAlgorithm } from "./types"
+import { diffuse } from "./diffusion"
+import { halftone } from "./halftone"
+import { KERNELS } from "./kernels"
+import { getMatrix } from "./matrices"
+import { ordered } from "./ordered"
+import type { DitherMethod } from "./types"
 
-export const ALGORITHMS: Record<string, DitherAlgorithm> = {
-  [floydSteinberg.id]: floydSteinberg,
+const DIFFUSION_NAMES: Record<string, string> = {
+  "floyd-steinberg": "Floyd–Steinberg",
+  atkinson: "Atkinson",
+  "jarvis-judice-ninke": "Jarvis–Judice–Ninke",
+  stucki: "Stucki",
+  burkes: "Burkes",
+  sierra: "Sierra",
+  "sierra-lite": "Sierra Lite",
 }
 
-export const DEFAULT_ALGORITHM_ID = floydSteinberg.id
+const diffusionMethods: DitherMethod[] = Object.entries(KERNELS).map(([id, kernel]) => ({
+  id,
+  name: DIFFUSION_NAMES[id] ?? id,
+  family: "diffusion",
+  apply: (image, options) => diffuse(image, kernel, options.palette, options.serpentine),
+}))
 
-export function getAlgorithm(id: string): DitherAlgorithm {
-  return ALGORITHMS[id] ?? floydSteinberg
+export const METHODS: DitherMethod[] = [
+  ...diffusionMethods,
+  {
+    id: "ordered",
+    name: "Ordered",
+    family: "ordered",
+    apply: (image, options) =>
+      ordered(image, getMatrix(options.matrixId), options.palette, options.patternStrength),
+  },
+  {
+    id: "halftone",
+    name: "Halftone",
+    family: "halftone",
+    apply: (image, options) =>
+      halftone(image, {
+        palette: options.palette,
+        cellSize: options.cellSize,
+        angle: options.angle,
+        shape: options.shape,
+        cellAspect: options.cellAspect,
+      }),
+  },
+]
+
+export const DEFAULT_METHOD_ID = "floyd-steinberg"
+
+export function getMethod(id: string): DitherMethod {
+  return METHODS.find((m) => m.id === id) ?? METHODS[0]
 }
 
-export { floydSteinberg, ditherFloydSteinberg } from "./floyd-steinberg"
-export { toGrayscale, applyContrast } from "./grayscale"
-export type { DitherAlgorithm, DitherOptions } from "./types"
+export { MATRICES, getMatrix } from "./matrices"
+export { PALETTES, getPalette, hexToRgb, rgbToHex } from "./palette"
+export type {
+  Bitmap,
+  DitherFamily,
+  DitherMethod,
+  HalftoneShape,
+  MethodOptions,
+  Palette,
+  RGB,
+} from "./types"

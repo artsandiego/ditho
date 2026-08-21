@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-import { renderDither, type DitherSettings } from "@/lib/dither/pipeline"
+import { renderDither, type DitherResult, type DitherSettings } from "@/lib/dither/pipeline"
 
 /**
  * Re-dither whenever the source or any setting changes.
@@ -19,12 +19,11 @@ import { renderDither, type DitherSettings } from "@/lib/dither/pipeline"
 export function useDitheredImage(
   source: HTMLCanvasElement | null,
   settings: DitherSettings,
-): ImageData | null {
+): DitherResult | null {
   const [result, setResult] = useState<{
     source: HTMLCanvasElement
-    image: ImageData
+    value: DitherResult
   } | null>(null)
-  const { algorithmId, pixelSize, threshold, contrast, invert } = settings
 
   useEffect(() => {
     if (!source) return
@@ -33,16 +32,7 @@ export function useDitheredImage(
     const run = () => {
       if (spent) return
       spent = true
-      setResult({
-        source,
-        image: renderDither(source, {
-          algorithmId,
-          pixelSize,
-          threshold,
-          contrast,
-          invert,
-        }),
-      })
+      setResult({ source, value: renderDither(source, settings) })
     }
 
     // Frame callbacks never fire in a hidden tab, so a timer races the frame
@@ -56,7 +46,7 @@ export function useDitheredImage(
       cancelAnimationFrame(frame)
       window.clearTimeout(timer)
     }
-  }, [source, algorithmId, pixelSize, threshold, contrast, invert])
+  }, [source, settings])
 
-  return result && result.source === source ? result.image : null
+  return result && result.source === source ? result.value : null
 }

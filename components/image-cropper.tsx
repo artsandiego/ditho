@@ -37,6 +37,7 @@ interface ImageCropperProps {
   onConfirm: () => void
   onCancel: () => void
   confirmLabel: string
+  canConfirm: boolean
 }
 
 export function ImageCropper({
@@ -46,6 +47,7 @@ export function ImageCropper({
   onConfirm,
   onCancel,
   confirmLabel,
+  canConfirm,
 }: ImageCropperProps) {
   const original = image.width / image.height
   const presets = [{ label: "Original", value: original }, ...PRESETS]
@@ -97,35 +99,35 @@ export function ImageCropper({
 
         <div className="flex items-center gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-4 lg:max-w-xs">
-          <span className="label-key shrink-0 hidden sm:inline">Zoom</span>
-          <Slider
-            value={[value.zoom]}
-            min={1}
-            max={8}
-            step={0.01}
-            onValueChange={([zoom]) => onChange({ ...value, zoom })}
-            aria-label="Zoom"
-          />
+            <span className="label-key hidden shrink-0 sm:inline">Zoom</span>
+            <Slider
+              value={[value.zoom]}
+              min={1}
+              max={8}
+              step={0.01}
+              onValueChange={([zoom]) => onChange({ ...value, zoom })}
+              aria-label="Zoom"
+            />
             <span className="value-readout w-10 shrink-0 text-right">
               {value.zoom.toFixed(2)}×
             </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            className="h-9 px-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={onConfirm}
-            disabled={!value.area}
-            className="h-9 px-6 text-[11px] uppercase tracking-[0.2em]"
-          >
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              className="h-9 px-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={onConfirm}
+              disabled={!canConfirm}
+              className="h-9 px-6 text-[11px] uppercase tracking-[0.2em]"
+            >
               {confirmLabel}
             </Button>
           </div>

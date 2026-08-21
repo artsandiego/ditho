@@ -8,11 +8,19 @@ export interface LoadedImage {
 }
 
 const ACCEPTED = /^image\//
+const LOAD_TIMEOUT_MS = 20_000
 
 /**
  * Turn a picked File into a decoded image, or throw a message worth showing.
- * The type check is not enough on its own: Safari reports HEIC as an image and
- * every other browser then fails to decode it, so we wait for the decode.
+ *
+ * Uses load/error rather than `decode()`: a detached image's decode can be
+ * deferred indefinitely while the tab is hidden, which would leave the upload
+ * stuck on "Reading…" for anyone who switches away mid-drop. The load event
+ * fires regardless, and still tells us what we need — a format the browser
+ * cannot handle fails rather than loading.
+ *
+ * The type check alone is not enough: Safari reports HEIC as an image and every
+ * other browser then fails to decode it.
  */
 export async function loadImageFile(file: File): Promise<LoadedImage> {
   if (!ACCEPTED.test(file.type)) {
@@ -21,15 +29,32 @@ export async function loadImageFile(file: File): Promise<LoadedImage> {
 
   const url = URL.createObjectURL(file)
   const element = new Image()
-  element.src = url
 
   try {
-    await element.decode()
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error("timeout")),
+        LOAD_TIMEOUT_MS,
+      )
+      const settle = (fn: () => void) => () => {
+        clearTimeout(timer)
+        fn()
+      }
+
+      element.onload = settle(resolve)
+      element.onerror = settle(() => reject(new Error("decode")))
+      element.src = url
+    })
   } catch {
     URL.revokeObjectURL(url)
     throw new Error(
       `Could not read ${file.name || "that image"}. HEIC files need to be exported as JPEG or PNG first.`,
     )
+  }
+
+  if (!element.naturalWidth || !element.naturalHeight) {
+    URL.revokeObjectURL(url)
+    throw new Error(`${file.name || "That image"} has no readable pixels.`)
   }
 
   return {

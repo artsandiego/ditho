@@ -1,4 +1,11 @@
 export function createCanvas(width: number, height: number): HTMLCanvasElement {
+  // Math.max(1, NaN) is NaN, which a canvas silently accepts as 0 and only
+  // complains about several draw calls later. Fail here, where the bad number
+  // came from, instead of at some downstream drawImage.
+  if (!Number.isFinite(width) || !Number.isFinite(height)) {
+    throw new Error(`Canvas needs finite dimensions, got ${width}x${height}.`)
+  }
+
   const canvas = document.createElement("canvas")
   canvas.width = Math.max(1, Math.round(width))
   canvas.height = Math.max(1, Math.round(height))

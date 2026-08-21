@@ -1,86 +1,139 @@
 import { downscaleCanvas, readImageData } from "@/lib/image/canvas"
 
-import { getAlgorithm, DEFAULT_ALGORITHM_ID } from "./index"
-import { applyContrast, toGrayscale } from "./grayscale"
+import { applyCurve, toneCurve } from "./adjust"
+import { DEFAULT_METHOD_ID, getMethod } from "./index"
+import { getPalette, hexToRgb } from "./palette"
+import type { HalftoneShape, RGB } from "./types"
+
+export type ColorMode = "duotone" | "palette"
 
 export interface DitherSettings {
-  algorithmId: string
+  methodId: string
+  /** Threshold matrix for the ordered method. */
+  matrixId: string
   /** 1 = finest grain, 16 = chunky. Divides the dither grid resolution. */
   pixelSize: number
-  /** Black/white cutoff, 0-255. */
-  threshold: number
-  /** -100 to 100, applied before dithering. */
+  /** Horizontal stretch of a cell. 1 is square. */
+  cellAspect: number
+  /** How hard the ordered threshold matrix is applied. */
+  patternStrength: number
+  shape: HalftoneShape
+  /** Halftone screen angle, degrees. */
+  angle: number
+  serpentine: boolean
+  brightness: number
   contrast: number
   invert: boolean
+  colorMode: ColorMode
+  ink: string
+  paper: string
+  paletteId: string
 }
 
 export const DEFAULT_SETTINGS: DitherSettings = {
-  algorithmId: DEFAULT_ALGORITHM_ID,
+  methodId: DEFAULT_METHOD_ID,
+  matrixId: "bayer-4",
   pixelSize: 3,
-  threshold: 128,
+  cellAspect: 1,
+  patternStrength: 1,
+  shape: "circle",
+  angle: 45,
+  serpentine: true,
+  brightness: 0,
   contrast: 10,
   invert: false,
+  colorMode: "duotone",
+  ink: "#000000",
+  paper: "#ffffff",
+  paletteId: "mono",
 }
 
 /** Longest edge of the dither grid at pixelSize 1. */
 export const BASE_DITHER_EDGE = 1200
 
+export interface DitherResult {
+  image: ImageData
+  /**
+   * Display aspect ratio. Once cells stop being square the grid no longer
+   * matches the photograph's proportions, and the canvas has to be stretched
+   * back rather than shown at its own.
+   */
+  aspect: number
+}
+
 /**
  * The grid the dither actually runs on.
  *
  * This is the whole trick: dithering a 2400px photo at full resolution makes a
- * pattern too fine to see and the result just reads as gray. We dither small
- * and let CSS scale the canvas back up with nearest-neighbor.
+ * pattern too fine to see and the result just reads as grey. We dither small
+ * and let the canvas scale back up with nearest-neighbour.
  */
 export function ditherResolution(
   width: number,
   height: number,
   pixelSize: number,
+  cellAspect: number,
 ): { width: number; height: number } {
   const longest = Math.max(width, height)
-  const scale = Math.min(longest, BASE_DITHER_EDGE) / longest / Math.max(1, pixelSize)
+  const scale = Math.min(longest, BASE_DITHER_EDGE) / longest
+  const size = Math.max(1, pixelSize)
+  const aspect = Math.max(0.1, cellAspect)
 
   return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
+    width: Math.max(1, Math.round((width * scale) / (size * aspect))),
+    height: Math.max(1, Math.round((height * scale) / size)),
   }
 }
 
-function toImageData(
-  bits: Uint8ClampedArray,
-  width: number,
-  height: number,
-  invert: boolean,
-): ImageData {
-  const image = new ImageData(width, height)
-
-  for (let p = 0, i = 0; p < bits.length; p++, i += 4) {
-    const value = invert ? 255 - bits[p] : bits[p]
-    image.data[i] = value
-    image.data[i + 1] = value
-    image.data[i + 2] = value
-    image.data[i + 3] = 255
+export function resolvePalette(settings: DitherSettings): RGB[] {
+  if (settings.colorMode === "duotone") {
+    return [hexToRgb(settings.ink), hexToRgb(settings.paper)]
   }
-
-  return image
+  return getPalette(settings.paletteId).colors
 }
 
-/** Cropped canvas in, one-bit ImageData out. Synchronous and side-effect free. */
+/**
+ * Cropped canvas in, dithered `ImageData` out. Synchronous and side-effect free.
+ *
+ * Halftone is the exception to the downscale rule: its cells need several
+ * pixels each to draw a dot into, so it renders on the full-resolution grid and
+ * spends the pixel-size control on cell size instead.
+ */
 export function renderDither(
   source: HTMLCanvasElement,
   settings: DitherSettings,
-): ImageData {
+): DitherResult {
+  const method = getMethod(settings.methodId)
+  const isHalftone = method.family === "halftone"
+
   const { width, height } = ditherResolution(
     source.width,
     source.height,
-    settings.pixelSize,
+    isHalftone ? 1 : settings.pixelSize,
+    isHalftone ? 1 : settings.cellAspect,
   )
 
   const small = downscaleCanvas(source, width, height)
-  const gray = applyContrast(toGrayscale(readImageData(small)), settings.contrast)
-  const bits = getAlgorithm(settings.algorithmId).apply(gray, small.width, small.height, {
-    threshold: settings.threshold,
+  const adjusted = applyCurve(
+    readImageData(small),
+    toneCurve(settings.brightness, settings.contrast, settings.invert),
+  )
+
+  const result = method.apply(adjusted, {
+    palette: resolvePalette(settings),
+    serpentine: settings.serpentine,
+    patternStrength: settings.patternStrength,
+    matrixId: settings.matrixId,
+    cellSize: settings.pixelSize * 2,
+    angle: settings.angle,
+    shape: settings.shape,
+    cellAspect: settings.cellAspect,
   })
 
-  return toImageData(bits, small.width, small.height, settings.invert)
+  // Copied in rather than wrapped: ImageData insists on a plain ArrayBuffer,
+  // while the kernels hand back whatever buffer they allocated.
+  const image = new ImageData(result.width, result.height)
+  image.data.set(result.data)
+
+  return { image, aspect: source.width / source.height }
 }

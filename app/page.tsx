@@ -10,7 +10,7 @@ import { UploadDropzone } from "@/components/upload-dropzone"
 import { Button } from "@/components/ui/button"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
-import { cropToCanvas } from "@/lib/image/crop"
+import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
 import { downloadPng, exportFilename } from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
 
@@ -30,7 +30,7 @@ export default function Home() {
   const [settings, setSettings] = useState<DitherSettings>(DEFAULT_SETTINGS)
   const [busy, setBusy] = useState(false)
 
-  const image = useDitheredImage(cropped, settings)
+  const result = useDitheredImage(cropped, settings)
 
   // Object URLs outlive the component that made them, so the live one is tracked
   // here and released whenever it is replaced. The ref is only ever written from
@@ -64,8 +64,12 @@ export default function Home() {
 
   const confirmCrop = () => {
     if (!source || !cropState?.area) return
-    setCropped(cropToCanvas(source.element, cropState.area))
-    setStage("edit")
+    try {
+      setCropped(cropToCanvas(source.element, cropState.area))
+      setStage("edit")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not apply that crop.")
+    }
   }
 
   const reset = () => {
@@ -78,9 +82,13 @@ export default function Home() {
   }
 
   const download = async () => {
-    if (!image || !source) return
+    if (!result || !source) return
     try {
-      await downloadPng(image, exportFilename(source.name))
+      await downloadPng(
+        result.image,
+        result.aspect,
+        exportFilename(source.name, settings.methodId),
+      )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")
     }
@@ -154,6 +162,7 @@ export default function Home() {
             value={cropState}
             onChange={setCropState}
             onConfirm={confirmCrop}
+            canConfirm={isUsableCrop(cropState.area)}
             onCancel={() => (cropped ? setStage("edit") : reset())}
             confirmLabel={cropped ? "Apply" : "Dither"}
           />
@@ -166,7 +175,7 @@ export default function Home() {
             {/* Insets rather than padding: the canvas sizes off this box, and a
                 padded box would make 100% height overflow it. */}
             <div className="absolute inset-5 lg:inset-10">
-              <DitherCanvas image={image} />
+              <DitherCanvas result={result} />
             </div>
           </section>
 
@@ -174,13 +183,15 @@ export default function Home() {
             <DitherControls
               settings={settings}
               onChange={setSettings}
-              resolution={image ? { width: image.width, height: image.height } : null}
+              resolution={
+                result ? { width: result.image.width, height: result.image.height } : null
+              }
             />
             <div className="mt-auto border-t border-border p-5">
               <Button
                 type="button"
                 onClick={download}
-                disabled={!image}
+                disabled={!result}
                 className="h-10 w-full text-[11px] uppercase tracking-[0.22em]"
               >
                 Export PNG

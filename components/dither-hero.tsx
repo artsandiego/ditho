@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react"
 
-import { DEFAULT_ALGORITHM_ID } from "@/lib/dither"
-import { renderDither } from "@/lib/dither/pipeline"
+import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
 
 const WIDTH = 260
@@ -61,12 +60,11 @@ export function DitherHero({ className }: { className?: string }) {
 
       out.putImageData(
         renderDither(source, {
-          algorithmId: DEFAULT_ALGORITHM_ID,
+          ...DEFAULT_SETTINGS,
           pixelSize: 1,
-          threshold: 128,
           contrast: 0,
-          invert: false,
-        }),
+          serpentine: false,
+        }).image,
         0,
         0,
       )
