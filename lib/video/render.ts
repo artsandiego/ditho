@@ -110,6 +110,12 @@ export async function renderVideo({
   let pipe: Pipe | null = null
   let frame: HTMLCanvasElement | null = null
   let frames = 0
+  // Presentation timestamps are not guaranteed to start at zero, or even to be
+  // positive — a trimmed clip or an edit list will happily hand back negative
+  // ones, and an encoder refuses those outright. Everything is shifted so the
+  // first frame kept lands on zero, which preserves the spacing between frames
+  // rather than clamping several of them onto the same instant.
+  let origin: number | null = null
 
   try {
     for await (const sample of sink.samples()) {
@@ -119,6 +125,12 @@ export async function renderVideo({
       }
 
       try {
+        origin ??= sample.timestamp
+        const timestamp = sample.timestamp - origin
+        // Checked before any drawing, so a frame that ends before the clip
+        // starts costs nothing beyond having been decoded.
+        if (timestamp + sample.duration <= 0) continue
+
         if (!frame) frame = createCanvas(sample.displayWidth, sample.displayHeight)
         const frameCtx = context2d(frame)
         frameCtx.clearRect(0, 0, frame.width, frame.height)
@@ -132,7 +144,7 @@ export async function renderVideo({
         pipe.gridCtx.putImageData(image, 0, 0)
         pipe.out.drawImage(pipe.grid, 0, 0, pipe.width, pipe.height)
 
-        await pipe.source.add(sample.timestamp, sample.duration)
+        await pipe.source.add(Math.max(0, timestamp), sample.duration)
         frames++
         onProgress?.({ frames, total })
       } finally {
