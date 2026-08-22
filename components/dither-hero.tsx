@@ -5,15 +5,49 @@ import { useEffect, useRef } from "react"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
 
-const WIDTH = 260
-const HEIGHT = 170
+// Wide and shallow, to be stretched across the top of the card.
+const WIDTH = 420
+const HEIGHT = 132
+
+/**
+ * Palette straight from the stylesheet, re-read only when the theme class
+ * actually changes.
+ *
+ * Reading these in an effect keyed on the theme looked simpler but was a race:
+ * the effect could run before next-themes had swapped the class on <html>, so
+ * the canvas kept painting in the colours of the theme just left. Keying off
+ * the live class instead cannot get out of step, whatever order things run in.
+ */
+function themeReader() {
+  let key = ""
+  let palette = { ink: "#ff3d0f", paper: "#0e0e0d", dark: true }
+
+  return () => {
+    const root = document.documentElement
+    if (root.className === key) return palette
+
+    key = root.className
+    const styles = getComputedStyle(root)
+    palette = {
+      ink: styles.getPropertyValue("--signal").trim() || "#ff3d0f",
+      paper: styles.getPropertyValue("--card").trim() || "#0e0e0d",
+      dark: root.classList.contains("dark"),
+    }
+    return palette
+  }
+}
 
 /**
  * The empty state runs the real engine.
  *
- * Two light sources drift across a black field and every frame goes through the
- * same Floyd-Steinberg pass a photo would. It costs about 44k pixels a frame,
- * and it shows the tool working before the user has uploaded anything.
+ * Two light sources drift across a field and every frame goes through the same
+ * error diffusion a photograph would, in the accent colour against the card.
+ * It costs about 55k pixels a frame, and it shows the tool working before the
+ * user has uploaded anything.
+ *
+ * On a light background the source is inverted first: the palette is picked by
+ * nearest colour, and without it the mid-toned accent would claim the whole
+ * background rather than the drifting highlights.
  */
 export function DitherHero({ className }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -29,12 +63,15 @@ export function DitherHero({ className }: { className?: string }) {
     const source = createCanvas(WIDTH, HEIGHT)
     const ctx = context2d(source, { willReadFrequently: true })
 
+    const readTheme = themeReader()
+
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     let raf = 0
     let frame = 0
 
     const draw = () => {
       const t = frame / 60
+      const { ink, paper, dark } = readTheme()
 
       ctx.globalCompositeOperation = "source-over"
       ctx.fillStyle = "#000000"
@@ -42,8 +79,8 @@ export function DitherHero({ className }: { className?: string }) {
       ctx.globalCompositeOperation = "lighter"
 
       const lights = [
-        { x: 0.5 + 0.3 * Math.cos(t * 0.57), y: 0.5 + 0.32 * Math.sin(t * 0.41), r: 0.62 },
-        { x: 0.5 + 0.36 * Math.cos(t * 0.29 + 2.1), y: 0.5 + 0.28 * Math.sin(t * 0.63 + 1.2), r: 0.44 },
+        { x: 0.5 + 0.26 * Math.cos(t * 0.57), y: 0.5 + 0.22 * Math.sin(t * 0.41), r: 0.46 },
+        { x: 0.5 + 0.3 * Math.cos(t * 0.29 + 2.1), y: 0.5 + 0.2 * Math.sin(t * 0.63 + 1.2), r: 0.38 },
       ]
 
       for (const light of lights) {
@@ -64,6 +101,10 @@ export function DitherHero({ className }: { className?: string }) {
           pixelSize: 1,
           contrast: 0,
           serpentine: false,
+          colorMode: "duotone",
+          ink,
+          paper,
+          invert: !dark,
         }).image,
         0,
         0,
@@ -77,8 +118,21 @@ export function DitherHero({ className }: { className?: string }) {
     // Paint once more when the tab comes back, in case it was hidden on mount.
     document.addEventListener("visibilitychange", draw)
 
+    // Repaint immediately on a theme switch rather than waiting for the next
+    // frame, which never comes when the animation is paused for reduced motion
+    // or the tab is in the background. Cancelling first keeps it to one loop.
+    const themeWatcher = new MutationObserver(() => {
+      cancelAnimationFrame(raf)
+      draw()
+    })
+    themeWatcher.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
     return () => {
       cancelAnimationFrame(raf)
+      themeWatcher.disconnect()
       document.removeEventListener("visibilitychange", draw)
     }
   }, [])

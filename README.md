@@ -82,6 +82,17 @@ landing on neither pure ink nor pure paper. Hard black-and-white edges are
 precisely what a DCT handles worst, so the format both bloats and rings even at
 quality 0.95.
 
+## Theming
+
+Light and dark, remembered across visits and following the system by default,
+via `next-themes`. The palette lives entirely in CSS variables, so the whole
+interface follows from two blocks in `app/globals.css`.
+
+The animated hero on the empty state reads its two colours from those same
+variables. It watches the theme class on `<html>` rather than a React value:
+keying it on the latter raced next-themes updating the DOM, and the canvas kept
+painting in the colours of the theme it had just left.
+
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**

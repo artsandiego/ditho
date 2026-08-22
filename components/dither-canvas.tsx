@@ -198,7 +198,7 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
       </div>
 
       {zoomable && (
-        <div className="floating absolute bottom-0 right-0 flex items-stretch overflow-hidden rounded-lg text-[10px]">
+        <div className="floating absolute bottom-0 right-0 flex items-stretch overflow-hidden rounded-lg text-xs">
           <button
             type="button"
             onClick={() => applyZoom(view.current.zoom / 1.6)}
@@ -224,7 +224,7 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
             type="button"
             onClick={resetView}
             disabled={fitted}
-            className="border-l border-border px-2.5 py-1.5 uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+            className="border-l border-border px-2.5 py-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
           >
             Fit
           </button>

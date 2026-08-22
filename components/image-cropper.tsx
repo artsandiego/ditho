@@ -1,5 +1,6 @@
 "use client"
 
+import { Check } from "lucide-react"
 import Cropper, { type Area, type Point } from "react-easy-crop"
 
 import { Button } from "@/components/ui/button"
@@ -87,7 +88,7 @@ export function ImageCropper({
                 key={preset.label}
                 type="button"
                 onClick={() => onChange({ ...value, aspect: preset.value })}
-                className={`shrink-0 rounded-md border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                className={`shrink-0 rounded-md border px-2.5 py-1 text-xs transition-colors ${
                   active
                     ? "border-signal text-signal"
                     : "border-border text-muted-foreground hover:border-input hover:text-foreground"
@@ -120,7 +121,7 @@ export function ImageCropper({
               type="button"
               variant="ghost"
               onClick={onCancel}
-              className="h-9 rounded-lg px-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+              className="h-9 rounded-lg px-4 text-xs text-muted-foreground hover:text-foreground"
             >
               Cancel
             </Button>
@@ -128,8 +129,9 @@ export function ImageCropper({
               type="button"
               onClick={onConfirm}
               disabled={!canConfirm}
-              className="h-9 rounded-lg px-6 text-[11px] uppercase tracking-[0.2em]"
+              className="h-9 gap-1.5 rounded-lg px-5 text-xs"
             >
+              <Check className="size-3.5" strokeWidth={2} />
               {confirmLabel}
             </Button>
           </div>

@@ -1,38 +1,30 @@
 import type { Metadata } from "next"
-import { DM_Mono, Martian_Mono } from "next/font/google"
+import { Geist } from "next/font/google"
 
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 
 import "./globals.css"
 
-const display = Martian_Mono({
-  variable: "--font-display",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["500", "700"],
-})
-
-const mono = DM_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
 })
 
 export const metadata: Metadata = {
   title: "DITHO",
   description:
-    "Upload a photo, crop it, and run it through Floyd-Steinberg error diffusion. Everything happens in your browser.",
+    "Upload a photo, crop it, and run it through error diffusion, an ordered screen or a halftone. Everything happens in your browser.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`dark ${display.variable} ${mono.variable} h-full antialiased`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="grain relative flex min-h-full flex-col bg-background">
-        {children}
-        <Toaster position="bottom-right" />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          {children}
+          <Toaster position="bottom-right" />
+        </ThemeProvider>
       </body>
     </html>
   )

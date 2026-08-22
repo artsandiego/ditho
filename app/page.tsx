@@ -1,5 +1,6 @@
 "use client"
 
+import { Crop, Download, ImagePlus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -7,6 +8,7 @@ import { DitherCanvas } from "@/components/dither-canvas"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
 import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { UploadDropzone } from "@/components/upload-dropzone"
 import { Button } from "@/components/ui/button"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
@@ -114,37 +116,48 @@ export default function Home() {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-5">
-        <span className="font-display text-sm font-bold tracking-[0.3em]">DITHO</span>
+        <button
+          type="button"
+          onClick={reset}
+          aria-label="DITHO — back to the start"
+          className="text-sm font-semibold tracking-[0.3em] transition-colors hover:text-signal"
+        >
+          DITHO
+        </button>
 
-        {stage === "edit" && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              {FORMATS.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => setFormat(entry.id)}
-                  aria-pressed={format === entry.id}
-                  className={`rounded-md border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                    format === entry.id
-                      ? "border-signal text-signal"
-                      : "border-border text-muted-foreground hover:border-input hover:text-foreground"
-                  }`}
-                >
-                  {entry.label}
-                </button>
-              ))}
-            </div>
-            <Button
-              type="button"
-              onClick={download}
-              disabled={!result}
-              className="h-8 rounded-lg px-5 text-[10px] uppercase tracking-[0.2em]"
-            >
-              Export
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {stage === "edit" && (
+            <>
+              <div className="flex items-center gap-1">
+                {FORMATS.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => setFormat(entry.id)}
+                    aria-pressed={format === entry.id}
+                    className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                      format === entry.id
+                        ? "border-signal text-signal"
+                        : "border-border text-muted-foreground hover:border-input hover:text-foreground"
+                    }`}
+                  >
+                    {entry.label}
+                  </button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                onClick={download}
+                disabled={!result}
+                className="h-8 gap-1.5 rounded-lg px-4 text-xs"
+              >
+                <Download className="size-3.5" strokeWidth={1.75} />
+                Export
+              </Button>
+            </>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       {stage === "upload" && (
@@ -183,21 +196,23 @@ export default function Home() {
             <div className="flex shrink-0 items-center gap-2 border-b border-border p-3">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => setStage("crop")}
-                className="h-8 flex-1 rounded-lg text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+                className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
               >
+                <Crop className="size-3.5" strokeWidth={1.75} />
                 Re-frame
               </Button>
               <Button
                 type="button"
-                variant="ghost"
                 onClick={reset}
-                className="h-8 flex-1 rounded-lg text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+                className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
               >
+                <ImagePlus className="size-3.5" strokeWidth={1.75} />
                 New image
               </Button>
             </div>
+
             <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
               <MethodControls
                 settings={settings}
@@ -206,6 +221,21 @@ export default function Home() {
                   result ? { width: result.image.width, height: result.image.height } : null
                 }
               />
+            </div>
+
+            <div className="shrink-0 border-t border-border p-3">
+              <p className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground/70">
+                Designed &amp; Dev by{" "}
+                <a
+                  href="https://artsandiego.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground underline decoration-dotted underline-offset-2 transition-colors hover:text-signal"
+                >
+                  Art
+                </a>{" "}
+                and his buddy Claude
+              </p>
             </div>
           </Panel>
 

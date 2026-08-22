@@ -1,5 +1,6 @@
 "use client"
 
+import { ImagePlus } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { DitherHero } from "@/components/dither-hero"
@@ -31,38 +32,45 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
         setDragging(false)
         take(event.dataTransfer.files)
       }}
-      className={`dot-field relative flex w-full max-w-2xl flex-col items-center gap-10 rounded-2xl border px-8 py-16 transition-colors duration-200 sm:px-16 ${
-        dragging ? "border-signal bg-signal/5" : "border-border bg-card"
+      className={`relative w-full max-w-2xl overflow-hidden rounded-2xl border bg-card transition-colors duration-200 ${
+        dragging ? "border-signal" : "border-border"
       }`}
     >
-      <div className="pointer-events-none absolute -top-px left-8 flex items-center gap-2 rounded-full bg-background px-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-        <span className={dragging ? "text-signal" : undefined}>
-          {dragging ? "release" : "source"}
-        </span>
+      {/* Flush to the top edge and full width, with the wordmark sitting on it. */}
+      <div className="relative">
+        <DitherHero className="block h-[168px] w-full sm:h-[196px]" />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="text-3xl font-semibold tracking-[0.32em] text-foreground drop-shadow-sm sm:text-4xl">
+            DITHO
+          </span>
+        </div>
       </div>
 
-      <DitherHero className="h-[170px] w-[260px] rounded-lg opacity-80" />
+      <div className="dot-field flex flex-col items-center gap-7 px-8 py-12 sm:px-16">
+        <div className="flex flex-col items-center gap-2.5 text-center">
+          <h2 className="text-lg font-medium tracking-tight">
+            {dragging ? "Release to load" : "Drop a photograph"}
+          </h2>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            JPEG, PNG, WebP or GIF. Nothing is uploaded anywhere — the image is read,
+            cropped and dithered entirely inside this tab.
+          </p>
+        </div>
 
-      <div className="flex flex-col items-center gap-3 text-center">
-        <h2 className="font-display text-lg font-medium tracking-tight">
-          Drop a photograph
-        </h2>
-        <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-          JPEG, PNG, WebP or GIF. Nothing is uploaded anywhere — the image is read,
-          cropped and dithered entirely inside this tab.
-        </p>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <Button
-          type="button"
-          disabled={busy}
-          onClick={() => input.current?.click()}
-          className="h-9 rounded-lg px-6 text-[11px] uppercase tracking-[0.2em]"
-        >
-          {busy ? "Reading…" : "Choose file"}
-        </Button>
-        <span className="label-key hidden sm:inline">or drag it here</span>
+        <div className="flex items-center gap-4">
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+            className="h-9 gap-2 rounded-lg px-5 text-xs"
+          >
+            <ImagePlus className="size-3.5" strokeWidth={1.75} />
+            {busy ? "Reading…" : "Choose file"}
+          </Button>
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            or drag it here
+          </span>
+        </div>
       </div>
 
       <input

@@ -9,10 +9,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-signal: var(--signal);
-  --font-sans: var(--font-mono);
-  --font-mono: var(--font-mono);
-  --font-display: var(--font-display);
-  --font-heading: var(--font-display);
+  --font-sans: var(--font-geist);
+  --font-display: var(--font-geist);
+  --font-heading: var(--font-geist);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -38,11 +37,33 @@
   --radius-4xl: calc(var(--radius) * 3.2);
 }
 
-/*
- * Dark-room chrome: pure ink on near-black ground, hairline rules, and a single
- * safelight accent, with the panels softened into floating cards.
- */
-:root,
+/* Warm paper by day, dark room by night, one safelight accent in both. */
+:root {
+  --background: #f6f4ef;
+  --foreground: #16130f;
+  --card: #ffffff;
+  --card-foreground: #16130f;
+  --popover: #ffffff;
+  --popover-foreground: #16130f;
+  --primary: #16130f;
+  --primary-foreground: #f9f8f5;
+  --secondary: #eceae3;
+  --secondary-foreground: #16130f;
+  --muted: #f0eee8;
+  --muted-foreground: #6b665e;
+  --accent: #eceae3;
+  --accent-foreground: #16130f;
+  --destructive: #d33608;
+  --border: #e2ded4;
+  --input: #d6d1c5;
+  --ring: #e0380c;
+  --radius: 0.625rem;
+  --signal: #d93a0a;
+  --dot: rgb(22 19 15 / 0.1);
+  --grain-blend: multiply;
+  --grain-opacity: 0.02;
+}
+
 .dark {
   --background: #080807;
   --foreground: #f3f1ea;
@@ -55,15 +76,17 @@
   --secondary: #1a1a18;
   --secondary-foreground: #f3f1ea;
   --muted: #141413;
-  --muted-foreground: #7d7a72;
+  --muted-foreground: #8d8981;
   --accent: #1f1f1c;
   --accent-foreground: #f3f1ea;
   --destructive: #ff3d0f;
   --border: #24241f;
   --input: #2c2c26;
   --ring: #ff3d0f;
-  --radius: 0.625rem;
   --signal: #ff3d0f;
+  --dot: rgb(243 241 234 / 0.07);
+  --grain-blend: screen;
+  --grain-opacity: 0.035;
 }
 
 @layer base {
@@ -72,7 +95,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-mono;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "tnum" 1;
   }
 
@@ -85,7 +108,7 @@
 @layer components {
   /* Halftone ground: the dither pattern, blown up and dimmed to a texture. */
   .dot-field {
-    background-image: radial-gradient(rgb(243 241 234 / 0.06) 1px, transparent 1px);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
     background-size: 6px 6px;
     background-position: 0 0;
   }
@@ -95,21 +118,17 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.035;
-    mix-blend-mode: screen;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: var(--grain-blend);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  .rule {
-    @apply border-border;
-  }
-
   .label-key {
-    @apply text-[10px] uppercase tracking-[0.22em] text-muted-foreground;
+    @apply text-[11px] font-medium text-muted-foreground;
   }
 
   .value-readout {
-    @apply text-[11px] tabular-nums tracking-tight text-signal;
+    @apply text-[11px] font-medium tabular-nums text-signal;
   }
 
   /* Slim instrument-panel sliders instead of the default chunky pills. */
@@ -122,28 +141,28 @@
   }
 
   .instrument [data-slot="slider-thumb"] {
-    @apply size-3.5 rounded-full border border-foreground bg-foreground shadow-none transition-colors;
+    @apply size-3.5 rounded-full border-0 bg-signal shadow-none transition-transform;
   }
 
   .instrument [data-slot="slider-thumb"]:hover,
   .instrument [data-slot="slider-thumb"]:focus-visible {
-    @apply border-signal bg-signal ring-0;
+    @apply scale-110 bg-signal ring-0;
   }
 
   /* A panel lifted off the canvas rather than welded to the window edge. */
   .floating {
-    @apply border border-border bg-card/95 shadow-2xl shadow-black/60 backdrop-blur-md;
+    @apply border border-border bg-card/95 shadow-2xl shadow-black/20 backdrop-blur-md dark:shadow-black/60;
+  }
+
+  [data-sonner-toast] {
+    font-family: var(--font-geist);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: var(--radius-lg);
   }
 
   .pixelated {
     image-rendering: pixelated;
-  }
-
-  [data-sonner-toast] {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.5;
-    border-radius: var(--radius-lg);
   }
 }
 
@@ -151,11 +170,11 @@
 .reactEasyCrop_CropArea {
   border-radius: var(--radius-sm) !important;
   border: 1px solid var(--foreground) !important;
-  box-shadow: 0 0 0 9999em rgb(8 8 7 / 0.78) !important;
-  color: rgb(8 8 7 / 0.78) !important;
+  box-shadow: 0 0 0 9999em rgb(0 0 0 / 0.6) !important;
+  color: rgb(0 0 0 / 0.6) !important;
 }
 
 .reactEasyCrop_CropArea::before,
 .reactEasyCrop_CropArea::after {
-  border-color: rgb(243 241 234 / 0.28) !important;
+  border-color: rgb(255 255 255 / 0.3) !important;
 }
