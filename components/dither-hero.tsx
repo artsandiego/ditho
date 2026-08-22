@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import { hexToRgb } from "@/lib/dither"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
+import { advanceLens, lensSettled } from "@/lib/image/lens"
 import { valueNoise } from "@/lib/image/noise"
 import { spotlight, tinted } from "@/lib/image/reveal"
 
@@ -30,9 +31,28 @@ const DOT_SEED = 0x5eed
  * through. A separate, finer field than the density grain: this one wants to
  * speckle the boundary rather than blotch it.
  */
-const REVEAL_REACH = 120
+const REVEAL_REACH = 145
 const REVEAL_CELL = 1
 const REVEAL_SEED = 0x9a17
+
+/**
+ * Extra ink laid down under the cursor, on top of the resting field.
+ *
+ * Recolouring alone left the reveal thin: the same sparse dots as everywhere
+ * else, only orange. Thickening the field as well is what makes it read as a
+ * bloom rather than as a tinted patch of the same texture.
+ */
+const REVEAL_DENSITY = 0.34
+
+/**
+ * How quickly the bloom chases the cursor and fades in or out.
+ *
+ * Per frame, as a fraction of the remaining distance — so it moves fastest when
+ * furthest behind and settles gently, which is what gives the lag its weight
+ * rather than making it feel merely late.
+ */
+const EASE_POSITION = 0.16
+const EASE_STRENGTH = 0.1
 
 /**
  * Palette straight from the stylesheet, re-read only when the theme class
@@ -73,8 +93,9 @@ function themeReader() {
  * scattered dots instead of ending on a drawn circle. Both noise fields are
  * generated once and never regenerated, so nothing crawls between frames.
  *
- * Nothing moves on its own, so there is no animation loop — the canvas is
- * repainted only when the pointer moves or the theme changes.
+ * Nothing moves on its own, so frames run only while the bloom still has
+ * somewhere to get to — chasing the cursor, or fading in and out. A hero nobody
+ * is touching costs nothing.
  */
 export function DitherHero({ className }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -99,11 +120,17 @@ export function DitherHero({ className }: { className?: string }) {
     const accent = new Uint8Array(WIDTH * HEIGHT)
 
     const readTheme = themeReader()
-    const pointer = { x: 0, y: 0, active: false }
+    const snap = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    // Where the cursor is, and where the bloom has got to. Keeping them apart
+    // is what lets the bloom trail rather than teleport.
+    const target = { x: 0, y: 0, active: false }
+    const lens = { x: 0, y: 0, strength: 0 }
 
     const paint = () => {
       const { ink, paper, dot } = readTheme()
       const data = field.data
+      const lit = lens.strength > 0.002
 
       for (let y = 0; y < HEIGHT; y++) {
         for (let x = 0; x < WIDTH; x++) {
@@ -112,15 +139,18 @@ export function DitherHero({ className }: { className?: string }) {
           const n = grain[p]
           const density = DOT_FLOOR + n * Math.sqrt(n) * DOT_RANGE
 
-          let hover = 0
-          if (pointer.active) {
-            const dx = x - pointer.x
-            const dy = y - pointer.y
-            hover = spotlight(dx * dx + dy * dy, REVEAL_REACH)
+          let bloom = 0
+          if (lit) {
+            const dx = x - lens.x
+            const dy = y - lens.y
+            // Square-rooted so the falloff holds near full strength around the
+            // cursor and tapers late. Linear starts dropping immediately, which
+            // reads as a point fading out rather than an area being lit.
+            bloom = Math.sqrt(spotlight(dx * dx + dy * dy, REVEAL_REACH)) * lens.strength
           }
-          accent[p] = tinted(hover, edge[p]) ? 1 : 0
+          accent[p] = tinted(bloom, edge[p]) ? 1 : 0
 
-          const value = density * 255
+          const value = (density + bloom * REVEAL_DENSITY) * 255
           const i = p * 4
           data[i] = value
           data[i + 1] = value
@@ -155,54 +185,65 @@ export function DitherHero({ className }: { className?: string }) {
       const pixels = image.data
 
       for (let p = 0, i = 0; i < pixels.length; i += 4, p++) {
-        const lit = pixels[i] > 127
-        pixels[i] = lit ? (accent[p] ? inkR : dotR) : paperR
-        pixels[i + 1] = lit ? (accent[p] ? inkG : dotG) : paperG
-        pixels[i + 2] = lit ? (accent[p] ? inkB : dotB) : paperB
+        const on = pixels[i] > 127
+        pixels[i] = on ? (accent[p] ? inkR : dotR) : paperR
+        pixels[i + 1] = on ? (accent[p] ? inkG : dotG) : paperG
+        pixels[i + 2] = on ? (accent[p] ? inkB : dotB) : paperB
       }
 
       out.putImageData(image, 0, 0)
     }
 
-    // Coalesce repaints to one per frame while the pointer is moving. The timer
-    // races the frame because frame callbacks never fire in a hidden tab, which
-    // would otherwise leave the canvas blank until it was foregrounded.
-    let frame = 0
+    const ease = snap ? 1 : EASE_POSITION
+    const fade = snap ? 1 : EASE_STRENGTH
+
+    // Frames run only while the bloom still has somewhere to get to, so a hero
+    // nobody is touching costs nothing. The timer races the frame callback
+    // because those never fire in a hidden tab.
+    let raf = 0
     let timer = 0
-    const schedule = () => {
-      cancelAnimationFrame(frame)
-      window.clearTimeout(timer)
+    let running = false
+
+    const run = () => {
+      if (running) return
+      running = true
 
       let spent = false
-      const run = () => {
+      const go = () => {
         if (spent) return
         spent = true
+        cancelAnimationFrame(raf)
+        window.clearTimeout(timer)
+        running = false
+
+        advanceLens(lens, target, ease, fade)
         paint()
+        if (!lensSettled(lens, target)) run()
       }
 
-      frame = requestAnimationFrame(run)
-      timer = window.setTimeout(run, 32)
+      raf = requestAnimationFrame(go)
+      timer = window.setTimeout(go, 32)
     }
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = display.getBoundingClientRect()
       if (!rect.width || !rect.height) return
-      pointer.x = ((event.clientX - rect.left) / rect.width) * WIDTH
-      pointer.y = ((event.clientY - rect.top) / rect.height) * HEIGHT
-      pointer.active = true
-      schedule()
+      target.x = ((event.clientX - rect.left) / rect.width) * WIDTH
+      target.y = ((event.clientY - rect.top) / rect.height) * HEIGHT
+      target.active = true
+      run()
     }
 
     const onPointerLeave = () => {
-      pointer.active = false
-      schedule()
+      target.active = false
+      run()
     }
 
     paint()
 
     display.addEventListener("pointermove", onPointerMove)
     display.addEventListener("pointerleave", onPointerLeave)
-    const themeWatcher = new MutationObserver(schedule)
+    const themeWatcher = new MutationObserver(paint)
     themeWatcher.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class"],
@@ -210,7 +251,7 @@ export function DitherHero({ className }: { className?: string }) {
     document.addEventListener("visibilitychange", paint)
 
     return () => {
-      cancelAnimationFrame(frame)
+      cancelAnimationFrame(raf)
       window.clearTimeout(timer)
       themeWatcher.disconnect()
       document.removeEventListener("visibilitychange", paint)
