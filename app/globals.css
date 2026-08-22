@@ -144,6 +144,11 @@
     @apply size-3.5 rounded-full border-0 bg-signal shadow-none transition-transform;
   }
 
+  /* 4. Section headings, set apart from the rows beneath them. */
+  .section-key {
+    @apply text-xs font-semibold tracking-tight text-foreground;
+  }
+
   .instrument [data-slot="slider-thumb"]:hover,
   .instrument [data-slot="slider-thumb"]:focus-visible {
     @apply scale-110 bg-signal ring-0;

@@ -109,6 +109,38 @@ is tidier but bends the result: an ink whose luminance is nowhere near zero
 makes every solid pixel emit a large quantisation error, which error diffusion
 carries down and to the right, smearing the field.
 
+## Video
+
+Load an MP4 — up to 100 MB and 5 minutes, since it is all held in the tab — and
+it is reduced to a single frame, which the cropper, the preview and every
+control then treat exactly like a photograph — taken a third of the way in, past
+the black or fading openings most clips start with. Export renders every frame
+and writes a new MP4. Audio is dropped; the output is silent.
+
+`renderDither` is untouched by any of this. It already took a canvas and
+returned `ImageData`, so a decoded video frame goes through the identical path a
+photograph does, and every method and palette applies unchanged.
+
+Decoding, encoding and muxing are [Mediabunny](https://mediabunny.dev) over
+WebCodecs — which also means the feature needs WebCodecs, so it is checked up
+front and unsupported browsers are told plainly rather than failing mid-render.
+Renders are cancellable, since a long clip is a long wait.
+
+Two things worth knowing:
+
+- **The bitrate is deliberately high.** A dither is hard black-and-white edges
+  everywhere, the worst case for a DCT codec — the same property measured on the
+  JPEG export. At an ordinary bitrate H.264 turns the dots to mush. Measured on
+  an exported frame, 97.5% of pixels still sit at the extremes.
+- **Video is offered only the stable methods.** Ordered and halftone read their
+  threshold from a fixed function of a pixel's position, so an unchanged pixel
+  dithers the same way every frame. Error diffusion has no such guarantee — its
+  output at any pixel depends on error accumulated from everything before it, so
+  a trivial change reshuffles the whole pattern and the picture visibly boils. A
+  method carried over from a photo is moved to a stable one when a video loads,
+  and the panel says why. It compresses better too: the same clip came out at
+  304 KB ordered against 652 KB with Floyd–Steinberg.
+
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**
@@ -132,6 +164,8 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
+| `lib/image/scale.ts` | Whole-number output scaling, shared by stills and video |
+| `lib/video/` | Probing, single frames, the render loop, and the support check |
 | `lib/image/noise.ts` | The value noise the hero's grain is built from |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 | `components/method-controls.tsx` | Left panel: how the dither is computed |

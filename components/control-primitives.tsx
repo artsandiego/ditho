@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch"
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="border-b border-border">
-      <h2 className="label-key border-b border-border/60 px-5 py-2.5">{title}</h2>
+      <h2 className="section-key border-b border-border/60 px-5 py-2.5">{title}</h2>
       {children}
     </section>
   )

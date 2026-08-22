@@ -38,7 +38,10 @@ export function isUsableCrop(crop: PixelCrop | null): crop is PixelCrop {
 }
 
 export function cropToCanvas(
-  image: HTMLImageElement,
+  // Widened from HTMLImageElement so a decoded video frame or an offscreen
+  // canvas can be cropped by exactly the same code. It is only ever handed to
+  // drawImage, which already accepts the wider type.
+  image: CanvasImageSource,
   crop: PixelCrop,
 ): HTMLCanvasElement {
   if (!isUsableCrop(crop)) {

@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getMethod, MATRICES, METHODS } from "@/lib/dither"
+import { getMethod, MATRICES, METHODS, videoMethods } from "@/lib/dither"
 import type { DitherSettings } from "@/lib/dither/pipeline"
 import type { HalftoneShape } from "@/lib/dither/types"
 
@@ -32,12 +32,20 @@ interface MethodControlsProps {
   settings: DitherSettings
   onChange: (next: DitherSettings) => void
   resolution: { width: number; height: number } | null
+  /** Video only offers the methods whose pattern holds still between frames. */
+  forVideo?: boolean
 }
 
 /** How the dither is computed: which algorithm, and the shape of its cells. */
-export function MethodControls({ settings, onChange, resolution }: MethodControlsProps) {
+export function MethodControls({
+  settings,
+  onChange,
+  resolution,
+  forVideo = false,
+}: MethodControlsProps) {
   const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
   const family = getMethod(settings.methodId).family
+  const available = forVideo ? videoMethods() : METHODS
 
   return (
     <div className="instrument flex flex-col">
@@ -48,25 +56,39 @@ export function MethodControls({ settings, onChange, resolution }: MethodControl
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectGroup>
-                <SelectLabel className="label-key">Error diffusion</SelectLabel>
-                {METHODS.filter((m) => m.family === "diffusion").map((method) => (
-                  <SelectItem key={method.id} value={method.id} className="text-[11px]">
-                    {method.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
+              {available.some((m) => m.family === "diffusion") && (
+                <SelectGroup>
+                  <SelectLabel className="label-key">Error diffusion</SelectLabel>
+                  {available
+                    .filter((m) => m.family === "diffusion")
+                    .map((method) => (
+                      <SelectItem key={method.id} value={method.id} className="text-[11px]">
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              )}
               <SelectGroup>
                 <SelectLabel className="label-key">Pattern</SelectLabel>
-                {METHODS.filter((m) => m.family !== "diffusion").map((method) => (
-                  <SelectItem key={method.id} value={method.id} className="text-[11px]">
-                    {method.name}
-                  </SelectItem>
-                ))}
+                {available
+                  .filter((m) => m.family !== "diffusion")
+                  .map((method) => (
+                    <SelectItem key={method.id} value={method.id} className="text-[11px]">
+                      {method.name}
+                    </SelectItem>
+                  ))}
               </SelectGroup>
             </SelectContent>
           </Select>
         </Row>
+
+        {forVideo && (
+          <p className="px-5 pb-3 text-[11px] leading-relaxed text-muted-foreground/80">
+            These are the methods suited to video. Their pattern comes from each
+            pixel&rsquo;s position, so it holds still between frames — error diffusion
+            recomputes itself every frame and visibly boils on playback.
+          </p>
+        )}
 
         {family === "diffusion" && (
           <Toggle
