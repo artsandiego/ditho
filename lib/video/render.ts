@@ -12,21 +12,10 @@ import { context2d, createCanvas } from "@/lib/image/canvas"
 import { cropToCanvas, type PixelCrop } from "@/lib/image/crop"
 import { exportScales } from "@/lib/image/scale"
 
+import { videoBitrate } from "./bitrate"
+
 /** Long edge of the exported video. Beyond this, encoding turns slow for no visible gain. */
 const TARGET_EDGE = 1920
-
-/**
- * Bits per pixel per second.
- *
- * Deliberately high. A dither is hard black-and-white edges everywhere, which
- * is the worst case for a DCT codec — the same property already measured on the
- * JPEG export, where a frame came out ten times larger than its PNG and gained
- * eighteen grey levels it had no business having. At an ordinary bitrate H.264
- * smears the dots into mush, so if the output looks soft, suspect this first.
- */
-const BITS_PER_PIXEL = 0.15
-const MIN_BITRATE = 2_000_000
-const MAX_BITRATE = 24_000_000
 
 export interface RenderProgress {
   frames: number
@@ -105,10 +94,7 @@ export async function renderVideo({
 
     const source = new CanvasSource(outCanvas, {
       codec: "avc",
-      bitrate: Math.min(
-        MAX_BITRATE,
-        Math.max(MIN_BITRATE, width * height * frameRate * BITS_PER_PIXEL),
-      ),
+      bitrate: videoBitrate(width, height, frameRate),
     })
 
     const output = new Output({
