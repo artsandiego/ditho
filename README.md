@@ -89,36 +89,25 @@ outright rather than merely the fallback for anyone whose system has not asked
 for light. The palette lives entirely in CSS variables, so the whole
 interface follows from two blocks in `app/globals.css`.
 
-The hero on the empty state reads its three colours from those same
+The hero on the empty state reads its two colours from those same
 variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is a field of dots, dithered by the same Floyd–Steinberg pass a
-photograph gets. It sits muted until the cursor passes over it and colours what
-it reaches. Nothing moves on its own, so there is no animation loop — the canvas
-repaints only when the pointer moves or the theme changes.
+That hero is a field of dots put through the same Floyd–Steinberg pass a
+photograph gets, in ink on paper. Nothing moves and nothing responds — it is
+painted once, and again only when the theme changes.
 
-The density comes from a seeded value-noise lattice, smoothly interpolated,
+Its density comes from a seeded value-noise lattice, smoothly interpolated,
 which is what makes it read as grain rather than as an even screen. Per-pixel
 randomness was the obvious approach and the wrong one: dithered, it flattens
 into static with no structure, and regenerated each frame it would crawl.
 
-Two details exist only because their absence looked wrong:
-
-- **The reveal's edge is thresholded against noise, not a radius.** Compared
-  with a constant it would end on a drawn circle; against a noise field the
-  accent thins into scattered dots across the transition, which is what makes
-  the boundary dissolve. Both noise fields are generated once, so the edge
-  cannot shimmer.
-- **The dither runs in plain black and white, and the result is recoloured
-  afterwards.** Handing the accent straight to the ditherer as a duotone is
-  tidier but bends the result: the accent's luminance is nowhere near zero, so
-  every solid pixel emits a large quantisation error that error diffusion
-  carries down and to the right, smearing the field.
-
-Which dots take the accent is decided *before* dithering, while it is still
-known where the cursor is — afterwards a lit pixel is only lit.
+The dither itself runs in plain black and white and the result is recoloured
+afterwards. Handing the theme's colours straight to the ditherer as a duotone
+is tidier but bends the result: an ink whose luminance is nowhere near zero
+makes every solid pixel emit a large quantisation error, which error diffusion
+carries down and to the right, smearing the field.
 
 ## Inspecting the result
 
@@ -143,7 +132,7 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
-| `lib/image/noise.ts`, `reveal.ts` | The hero's grain and its cursor reveal |
+| `lib/image/noise.ts` | The value noise the hero's grain is built from |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 | `components/method-controls.tsx` | Left panel: how the dither is computed |
 | `components/style-controls.tsx` | Right panel: how it looks |
