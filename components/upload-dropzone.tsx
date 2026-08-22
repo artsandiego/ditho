@@ -38,7 +38,11 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
     >
       {/* Flush to the top edge and full width, with the wordmark sitting on it. */}
       <div className="relative">
-        <DitherHero className="block h-[210px] w-full sm:h-[248px]" />
+        {/* Dimmed in dark mode so the wordmark reads against the field. Opacity
+            rather than a paler ink: the dots blend toward the card behind them,
+            which is the same colour the canvas already paints as paper, so only
+            the dots change. */}
+        <DitherHero className="block h-[210px] w-full sm:h-[248px] dark:opacity-60" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="text-3xl font-semibold tracking-[0.32em] text-foreground drop-shadow-sm sm:text-4xl">
             DITHO
