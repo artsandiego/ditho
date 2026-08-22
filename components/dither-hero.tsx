@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 
+import { hexToRgb } from "@/lib/dither"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
 import { fieldAt, repulsion, shade, type Blob } from "@/lib/image/metaballs"
@@ -13,15 +14,18 @@ const HEIGHT = 150
 /**
  * Two big circles, swinging toward and away from each other in opposite phase.
  *
- * Their centres close to roughly 66px apart and open back out to about 218,
+ * Their centres close to roughly 67px apart and open back out to about 224,
  * against a combined radius of 120 — so they spend part of every cycle clearly
  * fused and the rest clearly apart, which is the whole thing worth watching.
- * The vertical drifts run at unrelated speeds so they never meet the same way
- * twice.
+ * Sizing has to allow for the dithered falloff, not just the circle: the shading
+ * band carries visible texture out to about 1.27 radii, so a circle sized to
+ * merely fit still gets sheared flat against the edge. These are sized to that
+ * wider footprint, and the vertical drift kept small enough to hold it, so the
+ * circles read as circles rather than as something cropped.
  */
 const BALLS = [
-  { x: 0.33, y: 0.48, r: 62, dx: 0.09, dy: 0.16, sx: 0.22, sy: 0.17, px: 0, py: 0.6 },
-  { x: 0.67, y: 0.52, r: 58, dx: 0.09, dy: 0.15, sx: 0.22, sy: 0.21, px: Math.PI, py: 2.4 },
+  { x: 0.33, y: 0.47, r: 52, dx: 0.09, dy: 0.04, sx: 0.22, sy: 0.17, px: 0, py: 0.6 },
+  { x: 0.67, y: 0.53, r: 48, dx: 0.09, dy: 0.04, sx: 0.22, sy: 0.21, px: Math.PI, py: 2.4 },
 ]
 
 /** How far the cursor is felt, and how hard it shoves, in canvas pixels. */
@@ -40,7 +44,7 @@ const EASE = 0.12
  */
 function themeReader() {
   let key = ""
-  let palette = { ink: "#ff3d0f", paper: "#0e0e0d", dark: true }
+  let palette = { ink: "#ff3d0f", paper: "#0e0e0d" }
 
   return () => {
     const root = document.documentElement
@@ -51,7 +55,6 @@ function themeReader() {
     palette = {
       ink: styles.getPropertyValue("--signal").trim() || "#ff3d0f",
       paper: styles.getPropertyValue("--card").trim() || "#0e0e0d",
-      dark: root.classList.contains("dark"),
     }
     return palette
   }
@@ -66,9 +69,6 @@ function themeReader() {
  * blobs bulge toward each other and fuse as they meet, instead of sliding past
  * as separate discs, and shading the sum rather than cutting it at the surface
  * leaves a gradient for the dither to bite into.
- *
- * On a light ground the field is inverted first, or nearest-colour hands the
- * whole background to the mid-toned accent rather than the blobs.
  */
 export function DitherHero({ className }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -96,7 +96,7 @@ export function DitherHero({ className }: { className?: string }) {
 
     const paint = () => {
       const t = still ? 0 : frame / 60
-      const { ink, paper, dark } = readTheme()
+      const { ink, paper } = readTheme()
 
       // Where each blob is this frame: its orbit, plus however far the cursor
       // has shoved it. The shove eases in and out so nothing snaps.
@@ -129,20 +129,36 @@ export function DitherHero({ className }: { className?: string }) {
 
       ctx.putImageData(field, 0, 0)
 
-      out.putImageData(
-        renderDither(source, {
-          ...DEFAULT_SETTINGS,
-          pixelSize: 1,
-          contrast: 0,
-          serpentine: false,
-          colorMode: "duotone",
-          ink,
-          paper,
-          invert: !dark,
-        }).image,
-        0,
-        0,
-      )
+      // Dither in plain black and white, then recolour.
+      //
+      // Handing the accent straight to the ditherer as a duotone looked
+      // tidier but bent the shape: the accent's luminance is nowhere near
+      // zero, so every solid pixel emitted a large quantisation error that
+      // error diffusion carried down and to the right, smearing a circle into
+      // a lopsided blob with one flat edge. Against black and white there is
+      // no such error, so the circle stays a circle whatever colour it ends up.
+      const image = renderDither(source, {
+        ...DEFAULT_SETTINGS,
+        pixelSize: 1,
+        contrast: 0,
+        serpentine: false,
+        colorMode: "duotone",
+        ink: "#000000",
+        paper: "#ffffff",
+        invert: false,
+      }).image
+
+      const [inkR, inkG, inkB] = hexToRgb(ink)
+      const [paperR, paperG, paperB] = hexToRgb(paper)
+      const pixels = image.data
+      for (let i = 0; i < pixels.length; i += 4) {
+        const lit = pixels[i] > 127
+        pixels[i] = lit ? inkR : paperR
+        pixels[i + 1] = lit ? inkG : paperG
+        pixels[i + 2] = lit ? inkB : paperB
+      }
+
+      out.putImageData(image, 0, 0)
     }
 
     const loop = () => {

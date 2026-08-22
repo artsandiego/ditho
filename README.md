@@ -94,15 +94,24 @@ variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is two big circles rendered as a metaball field — each contributing
-`radius² / distance²`, summed and shaded rather than thresholded, then run
-through the same error diffusion a photograph gets. Summing is what makes them
-bulge toward each other and fuse as they meet instead of sliding past as two
-discs; shading the sum rather than cutting it at the surface leaves a gradient
-for the dither to bite into. They swing in opposite phase on a ~29 second
-approach, fused for about 61% of it, and the cursor shoves them away from it.
-The maths lives in `lib/image/metaballs.ts`, pure and tested; a whole frame
-costs about 5 ms at this size.
+That hero is two big circles rendered as a metaball field: each blob is a
+smooth bump, the bumps add, and the sum is shaded rather than thresholded. They
+swing in opposite phase on a ~29 second approach, and the cursor shoves them
+away from it. The maths lives in `lib/image/metaballs.ts`, pure and tested; a
+whole frame costs about 5 ms at this size.
+
+Two details there exist only because their absence looked wrong:
+
+- **The bump has compact support** — exactly zero past its influence radius —
+  rather than the `1/d²` a textbook metaball uses. An inverse-square tail never
+  reaches zero, so every blob keeps tugging on every other from across the
+  canvas and the outlines sag into lopsided amoebas instead of circles.
+- **The dither runs in plain black and white, and the result is recoloured
+  afterwards.** Handing the accent colour straight to the ditherer as a duotone
+  is tidier but bends the shape: the accent's luminance is nowhere near zero, so
+  every solid pixel emits a large quantisation error that error diffusion
+  carries down and to the right, smearing the circle into a blob with one flat
+  edge.
 
 ## Inspecting the result
 
