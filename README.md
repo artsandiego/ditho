@@ -69,6 +69,19 @@ Halftone sorts the palette into a luminance ramp and screens each cell between
 the two levels that bracket it, so a four-colour set halftones across all four
 rather than collapsing to its extremes.
 
+## Exporting
+
+PNG or JPG, chosen in the header. Both scale the dither grid up by whole-number
+factors with smoothing off, so the file matches the preview rather than a
+blurred version of it.
+
+PNG is the right answer for this output; JPG is there because it gets asked
+for. Measured on one frame, the same image comes out at 143 KB as a PNG holding
+exactly two shades, and 1.5 MB as a JPG holding eighteen, with 31% of pixels
+landing on neither pure ink nor pure paper. Hard black-and-white edges are
+precisely what a DCT handles worst, so the format both bloats and rings even at
+quality 0.95.
+
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**
@@ -90,9 +103,11 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/halftone.ts` | Analytic rotated halftone screen |
 | `lib/dither/palette.ts` | Palettes, nearest-colour, bracketing |
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
-| `lib/image/` | Loading, cropping, progressive downscaling, PNG export |
+| `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
+| `components/method-controls.tsx` | Left panel: how the dither is computed |
+| `components/style-controls.tsx` | Right panel: how it looks |
 
 Every kernel takes a plain `{ data, width, height }` and is free of DOM calls,
 so they run under Node in tests and would move to a Web Worker unchanged.

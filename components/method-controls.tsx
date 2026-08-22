@@ -1,0 +1,159 @@
+"use client"
+
+import {
+  Choice,
+  Dial,
+  Row,
+  Section,
+  Toggle,
+  type ChoiceOption,
+} from "@/components/control-primitives"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { getMethod, MATRICES, METHODS } from "@/lib/dither"
+import type { DitherSettings } from "@/lib/dither/pipeline"
+import type { HalftoneShape } from "@/lib/dither/types"
+
+const SHAPES: ChoiceOption<HalftoneShape>[] = [
+  { value: "circle", label: "●", title: "Circle" },
+  { value: "square", label: "■", title: "Square" },
+  { value: "diamond", label: "◆", title: "Diamond" },
+  { value: "line", label: "▬", title: "Line" },
+]
+
+interface MethodControlsProps {
+  settings: DitherSettings
+  onChange: (next: DitherSettings) => void
+  resolution: { width: number; height: number } | null
+}
+
+/** How the dither is computed: which algorithm, and the shape of its cells. */
+export function MethodControls({ settings, onChange, resolution }: MethodControlsProps) {
+  const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
+  const family = getMethod(settings.methodId).family
+
+  return (
+    <div className="instrument flex flex-col">
+      <Section title="Method">
+        <Row label="Algorithm">
+          <Select value={settings.methodId} onValueChange={(methodId) => patch({ methodId })}>
+            <SelectTrigger className="h-9 w-full text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel className="label-key">Error diffusion</SelectLabel>
+                {METHODS.filter((m) => m.family === "diffusion").map((method) => (
+                  <SelectItem key={method.id} value={method.id} className="text-[11px]">
+                    {method.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel className="label-key">Pattern</SelectLabel>
+                {METHODS.filter((m) => m.family !== "diffusion").map((method) => (
+                  <SelectItem key={method.id} value={method.id} className="text-[11px]">
+                    {method.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Row>
+
+        {family === "diffusion" && (
+          <Toggle
+            label="Serpentine"
+            hint="Alternate the scan direction to break up directional streaking."
+            checked={settings.serpentine}
+            onChange={(serpentine) => patch({ serpentine })}
+          />
+        )}
+
+        {family === "ordered" && (
+          <>
+            <Row label="Pattern">
+              <Select
+                value={settings.matrixId}
+                onValueChange={(matrixId) => patch({ matrixId })}
+              >
+                <SelectTrigger className="h-9 w-full text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MATRICES.map((matrix) => (
+                    <SelectItem key={matrix.id} value={matrix.id} className="text-[11px]">
+                      {matrix.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Row>
+            <Dial
+              label="Strength"
+              readout={`${settings.patternStrength.toFixed(2)}×`}
+              value={settings.patternStrength}
+              min={0}
+              max={2}
+              step={0.05}
+              onChange={(patternStrength) => patch({ patternStrength })}
+            />
+          </>
+        )}
+
+        {family === "halftone" && (
+          <>
+            <Choice
+              label="Dot shape"
+              options={SHAPES}
+              value={settings.shape}
+              onChange={(shape) => patch({ shape })}
+            />
+            <Dial
+              label="Screen angle"
+              readout={`${settings.angle}°`}
+              value={settings.angle}
+              min={0}
+              max={90}
+              onChange={(angle) => patch({ angle })}
+            />
+          </>
+        )}
+      </Section>
+
+      <Section title="Cell">
+        <Dial
+          label={family === "halftone" ? "Dot size" : "Pixel size"}
+          readout={`${settings.pixelSize}×`}
+          value={settings.pixelSize}
+          min={1}
+          max={16}
+          onChange={(pixelSize) => patch({ pixelSize })}
+        />
+        <Dial
+          label="Aspect"
+          readout={`${settings.cellAspect.toFixed(2)}×`}
+          value={settings.cellAspect}
+          min={0.25}
+          max={4}
+          step={0.05}
+          onChange={(cellAspect) => patch({ cellAspect })}
+        />
+      </Section>
+
+      <div className="flex items-baseline justify-between px-5 py-3.5">
+        <span className="label-key">Grid</span>
+        <span className="value-readout">
+          {resolution ? `${resolution.width}×${resolution.height}` : "—"}
+        </span>
+      </div>
+    </div>
+  )
+}

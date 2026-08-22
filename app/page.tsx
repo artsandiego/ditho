@@ -1,26 +1,39 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { DitherCanvas } from "@/components/dither-canvas"
-import { DitherControls } from "@/components/dither-controls"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
+import { MethodControls } from "@/components/method-controls"
+import { StyleControls } from "@/components/style-controls"
 import { UploadDropzone } from "@/components/upload-dropzone"
 import { Button } from "@/components/ui/button"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
 import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
-import { downloadPng, exportFilename } from "@/lib/image/export"
+import {
+  downloadImage,
+  exportFilename,
+  FORMATS,
+  type ExportFormat,
+} from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
 
 type Stage = "upload" | "crop" | "edit"
 
-const STEPS: { id: Stage; label: string }[] = [
-  { id: "upload", label: "Source" },
-  { id: "crop", label: "Frame" },
-  { id: "edit", label: "Press" },
-]
+/** Flush and stacked on a phone; a floating card either side once there is room. */
+function Panel({ side, children }: { side: "left" | "right"; children: ReactNode }) {
+  return (
+    <aside
+      className={`flex shrink-0 flex-col border-t border-border bg-card lg:absolute lg:inset-y-6 lg:w-[320px] lg:overflow-hidden lg:rounded-2xl lg:border lg:bg-card/95 lg:shadow-2xl lg:shadow-black/60 lg:backdrop-blur-md ${
+        side === "left" ? "lg:left-6" : "lg:right-6"
+      }`}
+    >
+      {children}
+    </aside>
+  )
+}
 
 export default function Home() {
   const [stage, setStage] = useState<Stage>("upload")
@@ -31,6 +44,9 @@ export default function Home() {
   const [cropSerial, setCropSerial] = useState(0)
   const [settings, setSettings] = useState<DitherSettings>(DEFAULT_SETTINGS)
   const [busy, setBusy] = useState(false)
+  // Kept out of `settings` on purpose: that object drives the pipeline, and
+  // changing the export format should not cost a re-dither.
+  const [format, setFormat] = useState<ExportFormat>("png")
 
   const result = useDitheredImage(cropped, settings)
 
@@ -44,25 +60,22 @@ export default function Home() {
   }
   useEffect(() => releaseUrl, [])
 
-  const handleSelect = useCallback(
-    async (file: File) => {
-      setBusy(true)
-      try {
-        const loaded = await loadImageFile(file)
-        releaseUrl()
-        liveUrl.current = loaded.url
-        setSource(loaded)
-        setCropState(initialCropState(loaded))
-        setCropped(null)
-        setStage("crop")
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Could not read that file.")
-      } finally {
-        setBusy(false)
-      }
-    },
-    [],
-  )
+  const handleSelect = useCallback(async (file: File) => {
+    setBusy(true)
+    try {
+      const loaded = await loadImageFile(file)
+      releaseUrl()
+      liveUrl.current = loaded.url
+      setSource(loaded)
+      setCropState(initialCropState(loaded))
+      setCropped(null)
+      setStage("crop")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read that file.")
+    } finally {
+      setBusy(false)
+    }
+  }, [])
 
   const confirmCrop = () => {
     if (!source || !cropState?.area) return
@@ -87,69 +100,51 @@ export default function Home() {
   const download = async () => {
     if (!result || !source) return
     try {
-      await downloadPng(
+      await downloadImage(
         result.image,
         result.aspect,
-        exportFilename(source.name, settings.methodId),
+        exportFilename(source.name, settings.methodId, format),
+        format,
       )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")
     }
   }
 
-  const activeStep = STEPS.findIndex((step) => step.id === stage)
-
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
-        <div className="flex items-baseline gap-3">
-          <span className="font-display text-sm font-bold tracking-[0.3em]">DITHO</span>
-          <span className="hidden text-[10px] tracking-[0.18em] text-muted-foreground sm:inline">
-            ONE-BIT IMAGE PRESS
-          </span>
-        </div>
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-5">
+        <span className="font-display text-sm font-bold tracking-[0.3em]">DITHO</span>
 
-        <nav className="hidden items-center gap-5 md:flex" aria-label="Progress">
-          {STEPS.map((step, index) => (
-            <span
-              key={step.id}
-              aria-current={index === activeStep ? "step" : undefined}
-              className={`flex items-baseline gap-2 text-[10px] uppercase tracking-[0.2em] transition-colors ${
-                index === activeStep
-                  ? "text-signal"
-                  : index < activeStep
-                    ? "text-foreground/60"
-                    : "text-muted-foreground/40"
-              }`}
-            >
-              <span className="tabular-nums">{String(index + 1).padStart(2, "0")}</span>
-              {step.label}
-            </span>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-1">
-          {stage === "edit" && (
+        {stage === "edit" && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              {FORMATS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setFormat(entry.id)}
+                  aria-pressed={format === entry.id}
+                  className={`rounded-md border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    format === entry.id
+                      ? "border-signal text-signal"
+                      : "border-border text-muted-foreground hover:border-input hover:text-foreground"
+                  }`}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </div>
             <Button
               type="button"
-              variant="ghost"
-              onClick={() => setStage("crop")}
-              className="h-8 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+              onClick={download}
+              disabled={!result}
+              className="h-8 rounded-lg px-5 text-[10px] uppercase tracking-[0.2em]"
             >
-              Re-frame
+              Export
             </Button>
-          )}
-          {source && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={reset}
-              className="h-8 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
-            >
-              New image
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {stage === "upload" && (
@@ -174,19 +169,37 @@ export default function Home() {
 
       {stage === "edit" && (
         <main className="relative flex flex-1 flex-col overflow-y-auto lg:block lg:overflow-hidden">
-          {/* The stage runs full bleed and the panel floats over it, so its left
-              inset has to clear the panel rather than sit beside it. */}
+          {/* The stage runs full bleed and the panels float over it, so its side
+              insets have to clear them rather than sit between them. */}
           <section className="dot-field relative min-h-[46vh] shrink-0 lg:absolute lg:inset-0 lg:min-h-0">
             {/* Insets rather than padding: the canvas sizes off this box, and a
                 padded box would make 100% height overflow it. */}
-            <div className="absolute inset-5 lg:inset-8 lg:left-[372px]">
+            <div className="absolute inset-5 lg:inset-y-8 lg:left-[372px] lg:right-[372px]">
               <DitherCanvas key={cropSerial} result={result} />
             </div>
           </section>
 
-          <aside className="flex shrink-0 flex-col border-t border-border bg-card lg:absolute lg:inset-y-6 lg:left-6 lg:w-[320px] lg:overflow-hidden lg:rounded-2xl lg:border lg:bg-card/95 lg:shadow-2xl lg:shadow-black/60 lg:backdrop-blur-md">
+          <Panel side="left">
+            <div className="flex shrink-0 items-center gap-2 border-b border-border p-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setStage("crop")}
+                className="h-8 flex-1 rounded-lg text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+              >
+                Re-frame
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={reset}
+                className="h-8 flex-1 rounded-lg text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+              >
+                New image
+              </Button>
+            </div>
             <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-              <DitherControls
+              <MethodControls
                 settings={settings}
                 onChange={setSettings}
                 resolution={
@@ -194,17 +207,13 @@ export default function Home() {
                 }
               />
             </div>
-            <div className="mt-auto border-t border-border p-4">
-              <Button
-                type="button"
-                onClick={download}
-                disabled={!result}
-                className="h-10 w-full rounded-lg text-[11px] uppercase tracking-[0.22em]"
-              >
-                Export PNG
-              </Button>
+          </Panel>
+
+          <Panel side="right">
+            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <StyleControls settings={settings} onChange={setSettings} />
             </div>
-          </aside>
+          </Panel>
         </main>
       )}
     </div>

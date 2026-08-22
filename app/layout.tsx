@@ -18,7 +18,7 @@ const mono = DM_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "DITHO — one-bit image press",
+  title: "DITHO",
   description:
     "Upload a photo, crop it, and run it through Floyd-Steinberg error diffusion. Everything happens in your browser.",
 }
