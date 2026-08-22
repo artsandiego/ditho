@@ -58,8 +58,8 @@ export function ImageCropper({
   )
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="dot-field relative min-h-0 flex-1 border-b border-border bg-black">
+    <div className="relative min-h-0 flex-1">
+      <div className="dot-field absolute inset-0 bg-black">
         <Cropper
           image={image.url}
           crop={value.crop}
@@ -75,8 +75,10 @@ export function ImageCropper({
         />
       </div>
 
-      <div className="instrument flex shrink-0 flex-col gap-4 bg-card px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* A toolbar over the canvas rather than a bar under it. Full width on a
+          phone, centred and hugging its content once there is room. */}
+      <div className="instrument floating absolute inset-x-4 bottom-4 flex flex-col gap-4 rounded-2xl px-4 py-3.5 sm:px-5 lg:inset-x-auto lg:bottom-6 lg:left-1/2 lg:w-auto lg:-translate-x-1/2 lg:flex-row lg:items-center lg:gap-8">
+        <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <span className="label-key mr-1 shrink-0">Ratio</span>
           {presets.map((preset, index) => {
             const active = index === activeRatio
@@ -85,7 +87,7 @@ export function ImageCropper({
                 key={preset.label}
                 type="button"
                 onClick={() => onChange({ ...value, aspect: preset.value })}
-                className={`shrink-0 border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                className={`shrink-0 rounded-md border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${
                   active
                     ? "border-signal text-signal"
                     : "border-border text-muted-foreground hover:border-input hover:text-foreground"
@@ -98,7 +100,7 @@ export function ImageCropper({
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex min-w-0 flex-1 items-center gap-4 lg:max-w-xs">
+          <div className="flex min-w-0 flex-1 items-center gap-3 lg:w-48 lg:flex-none">
             <span className="label-key hidden shrink-0 sm:inline">Zoom</span>
             <Slider
               value={[value.zoom]}
@@ -118,7 +120,7 @@ export function ImageCropper({
               type="button"
               variant="ghost"
               onClick={onCancel}
-              className="h-9 px-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+              className="h-9 rounded-lg px-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
             >
               Cancel
             </Button>
@@ -126,7 +128,7 @@ export function ImageCropper({
               type="button"
               onClick={onConfirm}
               disabled={!canConfirm}
-              className="h-9 px-6 text-[11px] uppercase tracking-[0.2em]"
+              className="h-9 rounded-lg px-6 text-[11px] uppercase tracking-[0.2em]"
             >
               {confirmLabel}
             </Button>

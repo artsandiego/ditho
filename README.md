@@ -72,7 +72,9 @@ rather than collapsing to its extremes.
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**
-to reset. It is view-only: the dither and the exported PNG are unaffected.
+to reset. The range runs from a fifth of the fit up to 24×, so the frame can be
+pushed back and judged as a picture as readily as it can be pulled in to count
+cells. It is view-only: the dither and the exported PNG are unaffected.
 
 Panning writes straight to the element rather than going through React state,
 so dragging does not re-render the tree on every pointer move. The view

@@ -288,7 +288,7 @@ export function DitherControls({ settings, onChange, resolution }: DitherControl
                               ),
                             })
                           }
-                          className="absolute -right-1.5 -top-1.5 hidden size-4 items-center justify-center border border-border bg-background text-[9px] leading-none text-muted-foreground hover:border-signal hover:text-signal group-hover:flex"
+                          className="absolute -right-1.5 -top-1.5 hidden size-4 items-center justify-center rounded-full border border-border bg-background text-[9px] leading-none text-muted-foreground hover:border-signal hover:text-signal group-hover:flex"
                         >
                           ×
                         </button>
@@ -308,7 +308,7 @@ export function DitherControls({ settings, onChange, resolution }: DitherControl
                           ],
                         })
                       }
-                      className="size-8 border border-dashed border-input text-muted-foreground transition-colors hover:border-signal hover:text-signal"
+                      className="size-8 rounded-md border border-dashed border-input text-muted-foreground transition-colors hover:border-signal hover:text-signal"
                     >
                       +
                     </button>
@@ -320,12 +320,12 @@ export function DitherControls({ settings, onChange, resolution }: DitherControl
                 </p>
               </div>
             ) : (
-              <div className="flex px-5 pb-4">
+              <div className="mx-5 mb-4 flex overflow-hidden rounded-md border border-white/10">
                 {palette.colors.map((colour, index) => (
                   <span
                     key={index}
                     title={rgbToHex(colour)}
-                    className="h-5 flex-1 border-y border-r border-white/10 first:border-l"
+                    className="h-5 flex-1"
                     style={{ background: rgbToHex(colour) }}
                   />
                 ))}

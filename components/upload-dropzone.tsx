@@ -31,17 +31,17 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
         setDragging(false)
         take(event.dataTransfer.files)
       }}
-      className={`dot-field relative flex w-full max-w-2xl flex-col items-center gap-10 border px-8 py-16 transition-colors duration-200 sm:px-16 ${
+      className={`dot-field relative flex w-full max-w-2xl flex-col items-center gap-10 rounded-2xl border px-8 py-16 transition-colors duration-200 sm:px-16 ${
         dragging ? "border-signal bg-signal/5" : "border-border bg-card"
       }`}
     >
-      <div className="pointer-events-none absolute -top-px left-6 flex items-center gap-2 bg-background px-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+      <div className="pointer-events-none absolute -top-px left-8 flex items-center gap-2 rounded-full bg-background px-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         <span className={dragging ? "text-signal" : undefined}>
           {dragging ? "release" : "source"}
         </span>
       </div>
 
-      <DitherHero className="h-[170px] w-[260px] opacity-80" />
+      <DitherHero className="h-[170px] w-[260px] rounded-lg opacity-80" />
 
       <div className="flex flex-col items-center gap-3 text-center">
         <h2 className="font-display text-lg font-medium tracking-tight">
@@ -58,7 +58,7 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
           type="button"
           disabled={busy}
           onClick={() => input.current?.click()}
-          className="h-9 px-6 text-[11px] uppercase tracking-[0.2em]"
+          className="h-9 rounded-lg px-6 text-[11px] uppercase tracking-[0.2em]"
         >
           {busy ? "Reading…" : "Choose file"}
         </Button>

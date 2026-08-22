@@ -6,8 +6,9 @@ import type { DitherResult } from "@/lib/dither/pipeline"
 import { context2d } from "@/lib/image/canvas"
 import { clampPan, letterbox, zoomAbout } from "@/lib/image/fit"
 
-const MIN_ZOOM = 1
+const MIN_ZOOM = 0.2
 const MAX_ZOOM = 24
+const FIT_ZOOM = 1
 
 const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value))
 
@@ -23,9 +24,11 @@ const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value
  * the height, so the box quietly stretches instead of letterboxing, and
  * `object-fit` is no help either — it fits to the bitmap's own ratio.
  *
- * Zoom is inspection only. It never touches the dither or the export, which is
- * why the view lives in refs and is written straight to the element: panning
- * should not re-render the tree on every pointer move.
+ * Zoom is inspection only — it never touches the dither or the export. It runs
+ * from a fifth of the fit up to 24x, so the whole frame can be pushed back to
+ * judge it as a picture as readily as it can be pulled in to count cells. The
+ * view lives in refs and is written straight to the element: panning should not
+ * re-render the tree on every pointer move.
  *
  * The view deliberately survives a change of method or cell size, so two
  * settings can be compared at the same magnification. A new crop is a different
@@ -89,8 +92,8 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
   )
 
   const resetView = useCallback(() => {
-    view.current = { zoom: 1, x: 0, y: 0 }
-    setZoom(1)
+    view.current = { zoom: FIT_ZOOM, x: 0, y: 0 }
+    setZoom(FIT_ZOOM)
     layout()
   }, [layout])
 
@@ -147,7 +150,9 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
   }, [layout, applyZoom])
 
   const startPan = (event: React.PointerEvent) => {
-    if (view.current.zoom <= 1 || !boxRef.current) return
+    // Below the fit there is nothing to pan to — the image sits centred with
+    // room to spare on both axes.
+    if (view.current.zoom <= FIT_ZOOM || !boxRef.current) return
     boxRef.current.setPointerCapture(event.pointerId)
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY }
     setPanning(true)
@@ -171,7 +176,9 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
   }
 
   const zoomable = result !== null
-  const cursor = !zoomable || zoom <= 1 ? "" : panning ? "cursor-grabbing" : "cursor-grab"
+  const cursor =
+    !zoomable || zoom <= FIT_ZOOM ? "" : panning ? "cursor-grabbing" : "cursor-grab"
+  const fitted = Math.abs(zoom - FIT_ZOOM) < 0.001
 
   return (
     <div className="relative h-full w-full">
@@ -191,11 +198,11 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
       </div>
 
       {zoomable && (
-        <div className="instrument absolute bottom-0 right-0 flex items-stretch border border-border bg-card/90 text-[10px] backdrop-blur-sm">
+        <div className="floating absolute bottom-0 right-0 flex items-stretch overflow-hidden rounded-lg text-[10px]">
           <button
             type="button"
             onClick={() => applyZoom(view.current.zoom / 1.6)}
-            disabled={zoom <= MIN_ZOOM}
+            disabled={zoom <= MIN_ZOOM + 0.001}
             aria-label="Zoom out"
             className="w-7 py-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
           >
@@ -207,7 +214,7 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
           <button
             type="button"
             onClick={() => applyZoom(view.current.zoom * 1.6)}
-            disabled={zoom >= MAX_ZOOM}
+            disabled={zoom >= MAX_ZOOM - 0.001}
             aria-label="Zoom in"
             className="w-7 py-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
           >
@@ -216,7 +223,7 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
           <button
             type="button"
             onClick={resetView}
-            disabled={zoom <= MIN_ZOOM}
+            disabled={fitted}
             className="border-l border-border px-2.5 py-1.5 uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
           >
             Fit

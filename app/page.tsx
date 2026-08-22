@@ -173,29 +173,33 @@ export default function Home() {
       )}
 
       {stage === "edit" && (
-        <main className="flex flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-          <section className="dot-field relative min-h-[46vh] shrink-0 lg:min-h-0 lg:shrink lg:flex-1">
+        <main className="relative flex flex-1 flex-col overflow-y-auto lg:block lg:overflow-hidden">
+          {/* The stage runs full bleed and the panel floats over it, so its left
+              inset has to clear the panel rather than sit beside it. */}
+          <section className="dot-field relative min-h-[46vh] shrink-0 lg:absolute lg:inset-0 lg:min-h-0">
             {/* Insets rather than padding: the canvas sizes off this box, and a
                 padded box would make 100% height overflow it. */}
-            <div className="absolute inset-5 lg:inset-10">
+            <div className="absolute inset-5 lg:inset-8 lg:left-[372px]">
               <DitherCanvas key={cropSerial} result={result} />
             </div>
           </section>
 
-          <aside className="flex shrink-0 flex-col border-t border-border bg-card lg:order-first lg:w-[320px] lg:overflow-y-auto lg:border-t-0 lg:border-r">
-            <DitherControls
-              settings={settings}
-              onChange={setSettings}
-              resolution={
-                result ? { width: result.image.width, height: result.image.height } : null
-              }
-            />
-            <div className="mt-auto border-t border-border p-5">
+          <aside className="flex shrink-0 flex-col border-t border-border bg-card lg:absolute lg:inset-y-6 lg:left-6 lg:w-[320px] lg:overflow-hidden lg:rounded-2xl lg:border lg:bg-card/95 lg:shadow-2xl lg:shadow-black/60 lg:backdrop-blur-md">
+            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <DitherControls
+                settings={settings}
+                onChange={setSettings}
+                resolution={
+                  result ? { width: result.image.width, height: result.image.height } : null
+                }
+              />
+            </div>
+            <div className="mt-auto border-t border-border p-4">
               <Button
                 type="button"
                 onClick={download}
                 disabled={!result}
-                className="h-10 w-full text-[11px] uppercase tracking-[0.22em]"
+                className="h-10 w-full rounded-lg text-[11px] uppercase tracking-[0.22em]"
               >
                 Export PNG
               </Button>

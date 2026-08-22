@@ -29,18 +29,18 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 2.6);
+  --radius-4xl: calc(var(--radius) * 3.2);
 }
 
 /*
- * One-bit chrome. The tool looks like the thing it makes: pure ink on pure
- * ground, hairline rules, square corners, and a single safelight accent.
+ * Dark-room chrome: pure ink on near-black ground, hairline rules, and a single
+ * safelight accent, with the panels softened into floating cards.
  */
 :root,
 .dark {
@@ -62,14 +62,13 @@
   --border: #24241f;
   --input: #2c2c26;
   --ring: #ff3d0f;
-  --radius: 0rem;
+  --radius: 0.625rem;
   --signal: #ff3d0f;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/40;
-    border-radius: 0 !important;
   }
 
   body {
@@ -113,22 +112,27 @@
     @apply text-[11px] tabular-nums tracking-tight text-signal;
   }
 
-  /* Square, instrument-panel sliders instead of the default pills. */
+  /* Slim instrument-panel sliders instead of the default chunky pills. */
   .instrument [data-slot="slider-track"] {
-    @apply h-[3px] bg-input;
+    @apply h-[3px] rounded-full bg-input;
   }
 
   .instrument [data-slot="slider-range"] {
-    @apply bg-signal;
+    @apply rounded-full bg-signal;
   }
 
   .instrument [data-slot="slider-thumb"] {
-    @apply size-3 border border-foreground bg-foreground shadow-none transition-colors;
+    @apply size-3.5 rounded-full border border-foreground bg-foreground shadow-none transition-colors;
   }
 
   .instrument [data-slot="slider-thumb"]:hover,
   .instrument [data-slot="slider-thumb"]:focus-visible {
-    @apply bg-signal border-signal ring-0;
+    @apply border-signal bg-signal ring-0;
+  }
+
+  /* A panel lifted off the canvas rather than welded to the window edge. */
+  .floating {
+    @apply border border-border bg-card/95 shadow-2xl shadow-black/60 backdrop-blur-md;
   }
 
   .pixelated {
@@ -139,11 +143,13 @@
     font-family: var(--font-mono);
     font-size: 11px;
     line-height: 1.5;
+    border-radius: var(--radius-lg);
   }
 }
 
 /* react-easy-crop, restyled to hairlines. */
 .reactEasyCrop_CropArea {
+  border-radius: var(--radius-sm) !important;
   border: 1px solid var(--foreground) !important;
   box-shadow: 0 0 0 9999em rgb(8 8 7 / 0.78) !important;
   color: rgb(8 8 7 / 0.78) !important;

@@ -114,7 +114,7 @@ export function Choice<T extends string>({
             title={option.title ?? option.label}
             aria-pressed={option.value === value}
             onClick={() => onChange(option.value)}
-            className={`flex h-8 flex-1 items-center justify-center border text-[11px] transition-colors ${
+            className={`flex h-8 flex-1 items-center justify-center rounded-md border text-[11px] transition-colors ${
               option.value === value
                 ? "border-signal text-signal"
                 : "border-border text-muted-foreground hover:border-input hover:text-foreground"
@@ -143,7 +143,7 @@ export function ColorChip({
   return (
     <label
       title={value.toUpperCase()}
-      className={`block cursor-pointer border border-white/15 transition-colors hover:border-white/40 ${className ?? ""}`}
+      className={`block cursor-pointer rounded-md border border-white/15 transition-colors hover:border-white/40 ${className ?? ""}`}
       style={{ background: value }}
     >
       <input
@@ -167,9 +167,9 @@ export function Swatch({
   onChange: (value: string) => void
 }) {
   return (
-    <label className="flex flex-1 cursor-pointer items-center gap-2.5 border border-border px-2.5 py-2 transition-colors hover:border-input">
+    <label className="flex flex-1 cursor-pointer items-center gap-2.5 rounded-lg border border-border px-2.5 py-2 transition-colors hover:border-input">
       <span
-        className="size-5 shrink-0 border border-white/15"
+        className="size-5 shrink-0 rounded-md border border-white/15"
         style={{ background: value }}
       />
       <span className="flex min-w-0 flex-col">
