@@ -94,11 +94,13 @@ variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is two big circles rendered as a metaball field: each blob is a
-smooth bump, the bumps add, and the sum is shaded rather than thresholded. They
-swing in opposite phase on a ~29 second approach, and the cursor shoves them
-away from it. The maths lives in `lib/image/metaballs.ts`, pure and tested; a
-whole frame costs about 5 ms at this size.
+That hero is three big circles rendered as a metaball field: each blob is a
+smooth bump, the bumps add, and the sum is shaded rather than thresholded, so
+they bulge together and fuse where they meet. The middle one drifts in
+counter-phase to the outer two, and hovering draws them all to the cursor —
+each closing a fraction of its own gap, so the distant ones travel further and
+the group gathers rather than shuffling across in formation. The maths lives in
+`lib/image/metaballs.ts`, pure and tested; a whole frame costs about 5 ms.
 
 Two details there exist only because their absence looked wrong:
 

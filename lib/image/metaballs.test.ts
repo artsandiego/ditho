@@ -1,46 +1,55 @@
 import { describe, expect, it } from "vitest"
 
-import { fieldAt, repulsion, shade, SURFACE, type Blob } from "./metaballs"
+import { attraction, fieldAt, shade, SURFACE, type Blob } from "./metaballs"
 
-const REACH = 100
-const PUSH = 50
+const FRACTION = 0.5
+const LIMIT = 60
 
-describe("repulsion", () => {
+describe("attraction", () => {
   it("does nothing without a pointer", () => {
-    expect(repulsion({ x: 10, y: 10 }, null, REACH, PUSH)).toEqual({ x: 0, y: 0 })
+    expect(attraction({ x: 10, y: 10 }, null, FRACTION, LIMIT)).toEqual({ x: 0, y: 0 })
   })
 
-  it("does nothing beyond its reach", () => {
-    expect(repulsion({ x: 200, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)).toEqual({ x: 0, y: 0 })
+  it("pulls toward the pointer, not away from it", () => {
+    const pull = attraction({ x: 50, y: 0 }, { x: 0, y: 0 }, FRACTION, LIMIT)
+
+    expect(pull.x).toBeLessThan(0)
+    expect(pull.y).toBe(0)
   })
 
-  it("pushes directly away from the pointer", () => {
-    const shove = repulsion({ x: 50, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)
-
-    expect(shove.x).toBeGreaterThan(0)
-    expect(shove.y).toBe(0)
+  it("closes the given fraction of the gap while under the limit", () => {
+    expect(attraction({ x: 40, y: 0 }, { x: 0, y: 0 }, 0.5, LIMIT).x).toBeCloseTo(-20, 6)
+    expect(attraction({ x: 0, y: 80 }, { x: 0, y: 0 }, 0.25, LIMIT).y).toBeCloseTo(-20, 6)
   })
 
-  it("pushes harder the closer the pointer gets", () => {
-    const far = repulsion({ x: 80, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)
-    const near = repulsion({ x: 20, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)
+  it("draws distant blobs further than near ones, so the group gathers", () => {
+    const near = attraction({ x: 20, y: 0 }, { x: 0, y: 0 }, FRACTION, LIMIT)
+    const far = attraction({ x: 90, y: 0 }, { x: 0, y: 0 }, FRACTION, LIMIT)
 
-    expect(near.x).toBeGreaterThan(far.x)
+    expect(Math.abs(far.x)).toBeGreaterThan(Math.abs(near.x))
   })
 
-  it("never shoves further than the given push, and fades out at the edge", () => {
-    for (let d = 0; d <= REACH; d += 5) {
-      const shove = repulsion({ x: d, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)
-      expect(Math.hypot(shove.x, shove.y)).toBeLessThanOrEqual(PUSH + 1e-9)
+  it("never pulls further than the limit, however far away the pointer is", () => {
+    for (const distance of [0, 50, 200, 5000]) {
+      const pull = attraction({ x: distance, y: 0 }, { x: 0, y: 0 }, FRACTION, LIMIT)
+      expect(Math.hypot(pull.x, pull.y)).toBeLessThanOrEqual(LIMIT + 1e-9)
     }
-    expect(repulsion({ x: REACH, y: 0 }, { x: 0, y: 0 }, REACH, PUSH)).toEqual({ x: 0, y: 0 })
   })
 
-  it("has no direction to push when the pointer is dead centre", () => {
-    const shove = repulsion({ x: 10, y: 10 }, { x: 10, y: 10 }, REACH, PUSH)
+  it("never overshoots the pointer", () => {
+    // Closing at most the whole gap keeps a blob from crossing to the far side
+    // and oscillating around the cursor.
+    for (const distance of [1, 10, 40, 100]) {
+      const pull = attraction({ x: distance, y: 0 }, { x: 0, y: 0 }, FRACTION, LIMIT)
+      expect(Math.abs(pull.x)).toBeLessThanOrEqual(distance + 1e-9)
+    }
+  })
 
-    expect(shove).toEqual({ x: 0, y: 0 })
-    expect(Number.isNaN(shove.x)).toBe(false)
+  it("has no direction to pull when the pointer is dead centre", () => {
+    const pull = attraction({ x: 10, y: 10 }, { x: 10, y: 10 }, FRACTION, LIMIT)
+
+    expect(pull).toEqual({ x: 0, y: 0 })
+    expect(Number.isNaN(pull.x)).toBe(false)
   })
 })
 

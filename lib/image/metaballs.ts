@@ -23,29 +23,31 @@ const INFLUENCE = 2.2
 const SOFTNESS = 0.8
 
 /**
- * How far a blob is shoved by the cursor.
+ * How far a blob is drawn toward the cursor.
  *
- * Directly away from the pointer, fading linearly to nothing at `reach` so
- * blobs drift back rather than snapping at the boundary. A pointer sitting
- * exactly on a centre has no direction to push along, so it pushes nowhere
- * instead of dividing by zero.
+ * Every blob follows, wherever it is, closing `fraction` of the gap up to a
+ * ceiling of `limit`. Closing a fraction rather than a fixed step is what makes
+ * the far ones travel further than the near ones, so the group gathers around
+ * the pointer instead of shuffling across in formation; the ceiling stops the
+ * ones furthest away from lunging. A pointer sitting exactly on a centre has no
+ * direction to pull along, so it pulls nowhere instead of dividing by zero.
  */
-export function repulsion(
+export function attraction(
   at: Point,
   pointer: Point | null,
-  reach: number,
-  push: number,
+  fraction: number,
+  limit: number,
 ): Point {
   if (!pointer) return { x: 0, y: 0 }
 
-  const awayX = at.x - pointer.x
-  const awayY = at.y - pointer.y
-  const distance = Math.hypot(awayX, awayY)
+  const towardX = pointer.x - at.x
+  const towardY = pointer.y - at.y
+  const distance = Math.hypot(towardX, towardY)
 
-  if (distance >= reach || distance < 1e-6) return { x: 0, y: 0 }
+  if (distance < 1e-6) return { x: 0, y: 0 }
 
-  const strength = (1 - distance / reach) * push
-  return { x: (awayX / distance) * strength, y: (awayY / distance) * strength }
+  const strength = Math.min(distance * fraction, limit)
+  return { x: (towardX / distance) * strength, y: (towardY / distance) * strength }
 }
 
 /**

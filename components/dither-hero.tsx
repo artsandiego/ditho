@@ -5,32 +5,34 @@ import { useEffect, useRef } from "react"
 import { hexToRgb } from "@/lib/dither"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
-import { fieldAt, repulsion, shade, type Blob } from "@/lib/image/metaballs"
+import { attraction, fieldAt, shade, type Blob } from "@/lib/image/metaballs"
 
 // Wide and shallow, to be stretched across the top of the card.
 const WIDTH = 420
 const HEIGHT = 150
 
 /**
- * Two big circles, swinging toward and away from each other in opposite phase.
+ * Three big circles, drifting in and out of each other's reach.
  *
- * Their centres close to roughly 67px apart and open back out to about 224,
- * against a combined radius of 120 — so they spend part of every cycle clearly
- * fused and the rest clearly apart, which is the whole thing worth watching.
- * Sizing has to allow for the dithered falloff, not just the circle: the shading
- * band carries visible texture out to about 1.27 radii, so a circle sized to
- * merely fit still gets sheared flat against the edge. These are sized to that
- * wider footprint, and the vertical drift kept small enough to hold it, so the
- * circles read as circles rather than as something cropped.
+ * The middle one runs in counter-phase to the outer two, so the group keeps
+ * closing up and opening out rather than sliding along together. Spacing runs
+ * from about 84px to 152px against radii that touch around 120, which is what
+ * gives a mix of fully fused and visibly separate.
+ *
+ * Sizing has to allow for the dithered falloff, not just the circle: the
+ * shading band carries visible texture out to about 1.27 radii. Only that faint
+ * outer band reaches the top and bottom edges; the solid core stays well inside,
+ * which is the difference between a soft bleed and a circle sheared flat.
  */
 const BALLS = [
-  { x: 0.33, y: 0.47, r: 52, dx: 0.09, dy: 0.04, sx: 0.22, sy: 0.17, px: 0, py: 0.6 },
-  { x: 0.67, y: 0.53, r: 48, dx: 0.09, dy: 0.04, sx: 0.22, sy: 0.21, px: Math.PI, py: 2.4 },
+  { x: 0.22, y: 0.5, r: 62, dx: 0.07, dy: 0.03, sx: 0.2, sy: 0.15, px: 0, py: 0.6 },
+  { x: 0.5, y: 0.47, r: 58, dx: 0.08, dy: 0.03, sx: 0.24, sy: 0.19, px: Math.PI, py: 2.4 },
+  { x: 0.78, y: 0.53, r: 54, dx: 0.07, dy: 0.03, sx: 0.2, sy: 0.17, px: 0, py: 4.1 },
 ]
 
-/** How far the cursor is felt, and how hard it shoves, in canvas pixels. */
-const POINTER_REACH = 135
-const POINTER_PUSH = 62
+/** How much of the gap to the cursor a blob closes, and how far it may travel. */
+const FOLLOW_FRACTION = 0.55
+const FOLLOW_LIMIT = 110
 const EASE = 0.12
 
 /**
@@ -99,7 +101,8 @@ export function DitherHero({ className }: { className?: string }) {
       const { ink, paper } = readTheme()
 
       // Where each blob is this frame: its orbit, plus however far the cursor
-      // has shoved it. The shove eases in and out so nothing snaps.
+      // has drawn it in. The pull eases in and out so nothing snaps, and the
+      // easing is what gives the group its lag as it gathers.
       const ease = still ? 1 : EASE
       const cursor = pointer.active ? pointer : null
 
@@ -107,12 +110,12 @@ export function DitherHero({ className }: { className?: string }) {
         const x = (ball.x + ball.dx * Math.cos(t * ball.sx + ball.px)) * WIDTH
         const y = (ball.y + ball.dy * Math.sin(t * ball.sy + ball.py)) * HEIGHT
 
-        const target = repulsion({ x, y }, cursor, POINTER_REACH, POINTER_PUSH)
-        const shove = nudge[index]
-        shove.x += (target.x - shove.x) * ease
-        shove.y += (target.y - shove.y) * ease
+        const target = attraction({ x, y }, cursor, FOLLOW_FRACTION, FOLLOW_LIMIT)
+        const pull = nudge[index]
+        pull.x += (target.x - pull.x) * ease
+        pull.y += (target.y - pull.y) * ease
 
-        return { x: x + shove.x, y: y + shove.y, radius: ball.r }
+        return { x: x + pull.x, y: y + pull.y, radius: ball.r }
       })
 
       const data = field.data
@@ -167,8 +170,8 @@ export function DitherHero({ className }: { className?: string }) {
       raf = requestAnimationFrame(loop)
     }
 
-    // With motion reduced the orbits are frozen, but the cursor still shoves
-    // blobs around — that is a direct response to input, not ambient movement.
+    // With motion reduced the orbits are frozen, but the cursor still draws
+    // blobs to it — that is a direct response to input, not ambient movement.
     const repaint = () => {
       if (!still) return
       cancelAnimationFrame(raf)
