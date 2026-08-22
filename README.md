@@ -109,6 +109,33 @@ is tidier but bends the result: an ink whose luminance is nowhere near zero
 makes every solid pixel emit a large quantisation error, which error diffusion
 carries down and to the right, smearing the field.
 
+## Video
+
+Load an MP4 and it is reduced to a single frame, which the cropper, the preview
+and every control then treat exactly like a photograph — a scrubber picks which
+frame that is, so settings can be checked against a dark part of the clip and a
+bright one. Export renders every frame and writes a new MP4. Audio is dropped;
+the output is silent.
+
+`renderDither` is untouched by any of this. It already took a canvas and
+returned `ImageData`, so a decoded video frame goes through the identical path a
+photograph does, and every method and palette applies unchanged.
+
+Decoding, encoding and muxing are [Mediabunny](https://mediabunny.dev) over
+WebCodecs — which also means the feature needs WebCodecs, so it is checked up
+front and unsupported browsers are told plainly rather than failing mid-render.
+Renders are cancellable, since a long clip is a long wait.
+
+Two things worth knowing:
+
+- **The bitrate is deliberately high.** A dither is hard black-and-white edges
+  everywhere, the worst case for a DCT codec — the same property measured on the
+  JPEG export. At an ordinary bitrate H.264 turns the dots to mush. Measured on
+  an exported frame, 97.5% of pixels still sit at the extremes.
+- **Error diffusion boils.** The pattern is recomputed per frame, so it crawls
+  even where nothing moves, while ordered and halftone hold still. Both are
+  available; the shimmer is a look, not a bug.
+
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**
@@ -132,6 +159,8 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
+| `lib/image/scale.ts` | Whole-number output scaling, shared by stills and video |
+| `lib/video/` | Probing, single frames, the render loop, and the support check |
 | `lib/image/noise.ts` | The value noise the hero's grain is built from |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 | `components/method-controls.tsx` | Left panel: how the dither is computed |

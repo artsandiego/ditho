@@ -11,7 +11,9 @@ import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UploadDropzone } from "@/components/upload-dropzone"
+import { VideoProgress } from "@/components/video-progress"
 import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
 import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
@@ -21,7 +23,12 @@ import {
   FORMATS,
   type ExportFormat,
 } from "@/lib/image/export"
+import { saveBlob } from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
+import { probeVideo, type VideoInfo } from "@/lib/video/probe"
+import { renderVideo } from "@/lib/video/render"
+import { videoStill } from "@/lib/video/still"
+import { checkVideoSupport } from "@/lib/video/support"
 
 type Stage = "upload" | "crop" | "edit"
 
@@ -50,6 +57,12 @@ export default function Home() {
   // Kept out of `settings` on purpose: that object drives the pipeline, and
   // changing the export format should not cost a re-dither.
   const [format, setFormat] = useState<ExportFormat>("png")
+  // Present only for video. The still in `source` is one frame out of it, which
+  // is what every control and the cropper actually operate on.
+  const [video, setVideo] = useState<VideoInfo | null>(null)
+  const [at, setAt] = useState(0)
+  const [render, setRender] = useState<{ frames: number; total: number } | null>(null)
+  const abort = useRef<AbortController | null>(null)
 
   const result = useDitheredImage(cropped, settings)
 
@@ -66,9 +79,26 @@ export default function Home() {
   const handleSelect = useCallback(async (file: File) => {
     setBusy(true)
     try {
-      const loaded = await loadImageFile(file)
+      const isVideo = file.type.startsWith("video/")
+
+      if (isVideo) {
+        const support = await checkVideoSupport()
+        if (!support.supported) throw new Error(support.reason)
+      }
+
+      // Video is reduced to a single still here, and everything downstream —
+      // cropper, controls, preview — treats it exactly like a photograph. Only
+      // the export knows the difference.
+      const info = isVideo ? await probeVideo(file) : null
+      // A frame from a third of the way in: openings are often black or fading.
+      const start = info ? info.duration / 3 : 0
+      const loaded = info ? await videoStill(info, start) : await loadImageFile(file)
+
       releaseUrl()
       liveUrl.current = loaded.url
+      video?.input.dispose()
+      setVideo(info)
+      setAt(start)
       setSource(loaded)
       setCropState(initialCropState(loaded))
       setCropped(null)
@@ -78,7 +108,22 @@ export default function Home() {
     } finally {
       setBusy(false)
     }
-  }, [])
+  }, [video])
+
+  /** Move the preview to another frame, keeping the crop and settings as they are. */
+  const scrubTo = async (timestamp: number) => {
+    if (!video) return
+    setAt(timestamp)
+    try {
+      const still = await videoStill(video, timestamp)
+      releaseUrl()
+      liveUrl.current = still.url
+      setSource(still)
+      if (cropState?.area) setCropped(cropToCanvas(still.element, cropState.area))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read that frame.")
+    }
+  }
 
   const confirmCrop = () => {
     if (!source || !cropState?.area) return
@@ -92,7 +137,11 @@ export default function Home() {
   }
 
   const reset = () => {
+    abort.current?.abort()
     releaseUrl()
+    video?.input.dispose()
+    setVideo(null)
+    setRender(null)
     setSource(null)
     setCropState(null)
     setCropped(null)
@@ -102,6 +151,36 @@ export default function Home() {
 
   const download = async () => {
     if (!result || !source) return
+
+    if (video) {
+      if (!cropState?.area) return
+      const controller = new AbortController()
+      abort.current = controller
+      setRender({ frames: 0, total: video.frames })
+
+      try {
+        const out = await renderVideo({
+          input: video.input,
+          crop: cropState.area,
+          settings,
+          total: video.frames,
+          frameRate: video.frameRate,
+          signal: controller.signal,
+          onProgress: setRender,
+        })
+        const stem = video.name.replace(/\.[^./]+$/, "") || "video"
+        saveBlob(out.blob, `${stem}-${settings.methodId}.mp4`)
+      } catch (error) {
+        if ((error as Error)?.name !== "AbortError") {
+          toast.error(error instanceof Error ? error.message : "Render failed.")
+        }
+      } finally {
+        abort.current = null
+        setRender(null)
+      }
+      return
+    }
+
     try {
       await downloadImage(
         result.image,
@@ -129,7 +208,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {stage === "edit" && (
             <>
-              <div className="flex items-center gap-1">
+              <div className={`flex items-center gap-1 ${video ? "hidden" : ""}`}>
                 {FORMATS.map((entry) => (
                   <button
                     key={entry.id}
@@ -149,11 +228,11 @@ export default function Home() {
               <Button
                 type="button"
                 onClick={download}
-                disabled={!result}
+                disabled={!result || render !== null}
                 className="h-8 gap-1.5 rounded-lg px-4 text-xs"
               >
                 <Download className="size-3.5" strokeWidth={1.75} />
-                Export
+                {video ? "Export MP4" : "Export"}
               </Button>
             </>
           )}
@@ -196,6 +275,31 @@ export default function Home() {
             <div className="absolute inset-5 lg:inset-y-8 lg:left-[372px] lg:right-[372px]">
               <DitherCanvas key={cropSerial} result={result} />
             </div>
+
+            {video && (
+              <div className="instrument floating absolute inset-x-5 bottom-5 flex items-center gap-4 rounded-2xl px-4 py-3 lg:inset-x-auto lg:bottom-8 lg:left-1/2 lg:w-[420px] lg:-translate-x-1/2">
+                <span className="label-key shrink-0">Frame</span>
+                <Slider
+                  value={[at]}
+                  min={0}
+                  max={Math.max(0.001, video.duration)}
+                  step={Math.min(0.04, video.duration / 200)}
+                  onValueChange={([next]) => scrubTo(next)}
+                  aria-label="Preview frame"
+                />
+                <span className="value-readout w-20 shrink-0 text-right tabular-nums">
+                  {at.toFixed(2)}s / {video.duration.toFixed(2)}s
+                </span>
+              </div>
+            )}
+
+            {render && (
+              <VideoProgress
+                frames={render.frames}
+                total={render.total}
+                onCancel={() => abort.current?.abort()}
+              />
+            )}
           </section>
 
           <Panel side="left">

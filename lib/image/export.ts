@@ -1,4 +1,5 @@
 import { context2d, createCanvas } from "./canvas"
+import { exportScales } from "./scale"
 
 /** Roughly the longest edge we aim for in an exported file. */
 const EXPORT_TARGET_EDGE = 2048
@@ -33,21 +34,10 @@ export function toExportCanvas(image: ImageData, aspect: number): HTMLCanvasElem
   const base = createCanvas(image.width, image.height)
   context2d(base).putImageData(image, 0, 0)
 
-  const ratio = (aspect * image.height) / image.width
-  let scaleY = 1
-  let scaleX = Math.max(1, Math.round(ratio))
+  const { x, y } = exportScales(image.width, image.height, aspect, EXPORT_TARGET_EDGE)
+  if (x === 1 && y === 1) return base
 
-  for (let candidate = 2; candidate <= 64; candidate++) {
-    const nextX = Math.max(1, Math.round(candidate * ratio))
-    const longest = Math.max(image.width * nextX, image.height * candidate)
-    if (longest > EXPORT_TARGET_EDGE) break
-    scaleX = nextX
-    scaleY = candidate
-  }
-
-  if (scaleX === 1 && scaleY === 1) return base
-
-  const out = createCanvas(image.width * scaleX, image.height * scaleY)
+  const out = createCanvas(image.width * x, image.height * y)
   const ctx = context2d(out)
   ctx.imageSmoothingEnabled = false
   ctx.drawImage(base, 0, 0, out.width, out.height)
@@ -87,14 +77,23 @@ export async function downloadImage(
   )
   if (!blob) throw new Error(`Could not encode the ${formatOf(format).label}.`)
 
+  saveBlob(blob, filename)
+}
+
+/**
+ * Hand a blob to the browser as a download.
+ *
+ * Firefox ignores clicks on detached anchors, and revoking the URL in the same
+ * tick can cancel the download before the browser has read the blob — hence the
+ * append and the delayed revoke.
+ */
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
   anchor.download = filename
   anchor.rel = "noopener"
 
-  // Firefox ignores clicks on detached anchors, and revoking the URL in the
-  // same tick can cancel the download before the browser has read the blob.
   document.body.append(anchor)
   anchor.click()
   anchor.remove()

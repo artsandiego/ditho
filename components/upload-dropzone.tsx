@@ -53,10 +53,10 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
       <div className="dot-field flex flex-col items-center gap-7 px-8 py-12 sm:px-16">
         <div className="flex flex-col items-center gap-2.5 text-center">
           <h2 className="text-lg font-medium tracking-tight">
-            {dragging ? "Release to load" : "Drop a photograph"}
+            {dragging ? "Release to load" : "Drop a photo or video"}
           </h2>
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            JPEG, PNG, WebP or GIF. Nothing is uploaded anywhere — the image is read,
+            Images or MP4 video. Nothing is uploaded anywhere — everything is read,
             cropped and dithered entirely inside this tab.
           </p>
         </div>
@@ -80,7 +80,7 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
       <input
         ref={input}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/quicktime,video/webm"
         hidden
         onChange={(event) => {
           take(event.target.files)
