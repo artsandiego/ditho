@@ -56,8 +56,9 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
             {dragging ? "Release to load" : "Drop a photo or video"}
           </h2>
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Images or MP4 video. Nothing is uploaded anywhere — everything is read,
-            cropped and dithered entirely inside this tab.
+            Images, or MP4 video up to 100 MB and 5 minutes. Nothing is uploaded
+            anywhere — everything is read, cropped and dithered entirely inside this
+            tab, which is also why video has a limit.
           </p>
         </div>
 

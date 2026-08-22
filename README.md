@@ -111,11 +111,11 @@ carries down and to the right, smearing the field.
 
 ## Video
 
-Load an MP4 and it is reduced to a single frame, which the cropper, the preview
-and every control then treat exactly like a photograph — a scrubber picks which
-frame that is, so settings can be checked against a dark part of the clip and a
-bright one. Export renders every frame and writes a new MP4. Audio is dropped;
-the output is silent.
+Load an MP4 — up to 100 MB and 5 minutes, since it is all held in the tab — and
+it is reduced to a single frame, which the cropper, the preview and every
+control then treat exactly like a photograph — taken a third of the way in, past
+the black or fading openings most clips start with. Export renders every frame
+and writes a new MP4. Audio is dropped; the output is silent.
 
 `renderDither` is untouched by any of this. It already took a canvas and
 returned `ImageData`, so a decoded video frame goes through the identical path a

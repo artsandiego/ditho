@@ -1,6 +1,6 @@
 "use client"
 
-import { Crop, Download, Film, ImagePlus } from "lucide-react"
+import { Crop, Download, Film, ImagePlus, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -61,6 +61,9 @@ export default function Home() {
   // is what every control and the cropper actually operate on.
   const [video, setVideo] = useState<VideoInfo | null>(null)
   const [render, setRender] = useState<{ frames: number; total: number } | null>(null)
+  // Explains that the preview is a single frame. Dismissible, since it has done
+  // its job once read, and re-shown for each new video rather than remembered.
+  const [notice, setNotice] = useState(true)
   const abort = useRef<AbortController | null>(null)
 
   const result = useDitheredImage(cropped, settings)
@@ -97,6 +100,7 @@ export default function Home() {
       // playback. Video is offered only the methods that hold still, and a
       // choice carried over from a photo is moved to one of them.
       if (info) {
+        setNotice(true)
         setSettings((current) =>
           isStableOverTime(current.methodId)
             ? current
@@ -270,14 +274,22 @@ export default function Home() {
               <DitherCanvas key={cropSerial} result={result} />
             </div>
 
-            {video && (
-              <div className="floating absolute inset-x-5 bottom-5 flex items-start gap-3 rounded-2xl px-4 py-3 lg:inset-x-auto lg:bottom-8 lg:left-1/2 lg:w-[440px] lg:-translate-x-1/2">
+            {video && notice && (
+              <div className="floating absolute inset-x-5 top-5 flex items-start gap-3 rounded-2xl py-3 pl-4 pr-2 lg:inset-x-auto lg:left-1/2 lg:top-8 lg:w-[460px] lg:-translate-x-1/2">
                 <Film className="mt-0.5 size-4 shrink-0 text-signal" strokeWidth={1.75} />
-                <p className="text-xs leading-relaxed text-muted-foreground">
+                <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
                   <span className="text-foreground">This is a still preview.</span> It shows
                   one frame so you can see how the settings land. Exporting applies them to
                   every frame and gives you the whole {video.duration.toFixed(1)}s video.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setNotice(false)}
+                  aria-label="Dismiss"
+                  className="-mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <X className="size-3.5" strokeWidth={1.75} />
+                </button>
               </div>
             )}
 
@@ -307,7 +319,7 @@ export default function Home() {
                 className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
               >
                 <ImagePlus className="size-3.5" strokeWidth={1.75} />
-                New image
+                New project
               </Button>
             </div>
 
