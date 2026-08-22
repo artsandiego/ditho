@@ -5,53 +5,34 @@ import { useEffect, useRef } from "react"
 import { hexToRgb } from "@/lib/dither"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
-import { attraction, fieldAt, shade, SURFACE, type Blob } from "@/lib/image/metaballs"
 import { valueNoise } from "@/lib/image/noise"
+import { spotlight, tinted } from "@/lib/image/reveal"
 
 // Wide and shallow, to be stretched across the top of the card.
 const WIDTH = 420
 const HEIGHT = 150
 
 /**
- * Three circles at distinctly different sizes, drifting in and out of each
- * other's reach. The middle one runs in counter-phase to the outer two, so the
- * group keeps closing up and opening out rather than sliding along together.
+ * Density of the dot field, as ink coverage.
  *
- * Sizing has to allow for the dithered falloff, not just the circle: the
- * shading band carries visible texture out to about 1.27 radii. The large one
- * lets that band run off the top and bottom, which is a soft fade rather than a
- * cut so long as its solid core stays inside — hence its smaller vertical
- * drift, which keeps that core clear of the edges.
+ * A floor plus a range, because those are the two things worth controlling: the
+ * floor sets how present the field is at its thinnest, the range how far it
+ * drifts. The noise is skewed low so most of the panel sits near the floor with
+ * occasional denser patches, which reads as grain rather than as an even screen.
  */
-const BALLS = [
-  // xxl — at the ceiling of what the banner's height allows before its solid
-  // core starts running off the edges, so it holds still vertically.
-  { x: 0.3, y: 0.5, r: 72, dx: 0.06, dy: 0.01, sx: 0.48, sy: 0.35, px: 0, py: 0.6 },
-  // l
-  { x: 0.6, y: 0.44, r: 42, dx: 0.07, dy: 0.05, sx: 0.58, sy: 0.45, px: Math.PI, py: 2.4 },
-  // m
-  { x: 0.84, y: 0.58, r: 26, dx: 0.06, dy: 0.07, sx: 0.48, sy: 0.4, px: 0, py: 4.1 },
-]
+const DOT_FLOOR = 0.08
+const DOT_RANGE = 0.2
+const DOT_CELL = 4
+const DOT_SEED = 0x5eed
 
 /**
- * A grain laid under the blobs so the paper carries texture instead of reading
- * as flat colour.
- *
- * Expressed as a floor plus a range rather than one amount, because those are
- * the two things worth controlling: the floor keeps a light speckle everywhere,
- * the range decides how far it drifts. Both are tiny — this lands around 1% ink
- * at its lightest, 3% typical and 8% at its densest, which is texture you only
- * notice once it is gone. The veil below keeps it clear of the circles.
+ * How far the cursor's colour carries, and the noise its edge dissolves
+ * through. A separate, finer field than the density grain: this one wants to
+ * speckle the boundary rather than blotch it.
  */
-const TEXTURE_FLOOR = 0.104
-const TEXTURE_RANGE = 0.052
-const TEXTURE_CELL = 4
-const TEXTURE_SEED = 0x5eed
-
-/** How much of the gap to the cursor a blob closes, and how far it may travel. */
-const FOLLOW_FRACTION = 0.55
-const FOLLOW_LIMIT = 110
-const EASE = 0.12
+const REVEAL_REACH = 120
+const REVEAL_CELL = 1
+const REVEAL_SEED = 0x9a17
 
 /**
  * Palette straight from the stylesheet, re-read only when the theme class
@@ -64,7 +45,7 @@ const EASE = 0.12
  */
 function themeReader() {
   let key = ""
-  let palette = { ink: "#ff3d0f", paper: "#0e0e0d" }
+  let palette = { ink: "#ff3d0f", paper: "#0e0e0d", dot: "#8d8981" }
 
   return () => {
     const root = document.documentElement
@@ -75,6 +56,7 @@ function themeReader() {
     palette = {
       ink: styles.getPropertyValue("--signal").trim() || "#ff3d0f",
       paper: styles.getPropertyValue("--card").trim() || "#0e0e0d",
+      dot: styles.getPropertyValue("--muted-foreground").trim() || "#8d8981",
     }
     return palette
   }
@@ -83,12 +65,16 @@ function themeReader() {
 /**
  * The empty state runs the real engine.
  *
- * A metaball field — each blob contributing r²/d² and the sum shaded rather
- * than thresholded — goes through the same error diffusion a photograph would,
- * in the accent colour against the card. Summing the fields is what makes two
- * blobs bulge toward each other and fuse as they meet, instead of sliding past
- * as separate discs, and shading the sum rather than cutting it at the surface
- * leaves a gradient for the dither to bite into.
+ * A field of dots, dithered by the same Floyd-Steinberg pass a photograph gets,
+ * sitting muted until the cursor passes over and colours what it reaches.
+ *
+ * The reveal's edge is thresholded against noise rather than a fixed radius,
+ * which is what dissolves it: across the transition the accent thins into
+ * scattered dots instead of ending on a drawn circle. Both noise fields are
+ * generated once and never regenerated, so nothing crawls between frames.
+ *
+ * Nothing moves on its own, so there is no animation loop — the canvas is
+ * repainted only when the pointer moves or the theme changes.
  */
 export function DitherHero({ className }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -105,56 +91,36 @@ export function DitherHero({ className }: { className?: string }) {
     const ctx = context2d(source, { willReadFrequently: true })
     const field = ctx.createImageData(WIDTH, HEIGHT)
 
-    // Static: the grain is the paper, so it must not crawl between frames.
-    const grain = valueNoise(WIDTH, HEIGHT, TEXTURE_CELL, TEXTURE_SEED)
+    const grain = valueNoise(WIDTH, HEIGHT, DOT_CELL, DOT_SEED)
+    const edge = valueNoise(WIDTH, HEIGHT, REVEAL_CELL, REVEAL_SEED)
+
+    // Which dots take the accent. Decided before dithering, while it is still
+    // known where the cursor is — once dithered, a lit pixel is only lit.
+    const accent = new Uint8Array(WIDTH * HEIGHT)
 
     const readTheme = themeReader()
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-
     const pointer = { x: 0, y: 0, active: false }
-    const nudge = BALLS.map(() => ({ x: 0, y: 0 }))
-
-    let raf = 0
-    let frame = 0
 
     const paint = () => {
-      const t = still ? 0 : frame / 60
-      const { ink, paper } = readTheme()
-
-      // Where each blob is this frame: its orbit, plus however far the cursor
-      // has drawn it in. The pull eases in and out so nothing snaps, and the
-      // easing is what gives the group its lag as it gathers.
-      const ease = still ? 1 : EASE
-      const cursor = pointer.active ? pointer : null
-
-      const blobs: Blob[] = BALLS.map((ball, index) => {
-        const x = (ball.x + ball.dx * Math.cos(t * ball.sx + ball.px)) * WIDTH
-        const y = (ball.y + ball.dy * Math.sin(t * ball.sy + ball.py)) * HEIGHT
-
-        const target = attraction({ x, y }, cursor, FOLLOW_FRACTION, FOLLOW_LIMIT)
-        const pull = nudge[index]
-        pull.x += (target.x - pull.x) * ease
-        pull.y += (target.y - pull.y) * ease
-
-        return { x: x + pull.x, y: y + pull.y, radius: ball.r }
-      })
-
+      const { ink, paper, dot } = readTheme()
       const data = field.data
+
       for (let y = 0; y < HEIGHT; y++) {
         for (let x = 0; x < WIDTH; x++) {
           const p = y * WIDTH + x
-          const strength = fieldAt(blobs, x, y)
 
-          // Full grain on bare paper, none at all by the time the field reaches
-          // a blob's surface. Letting it run all the way in would wobble the
-          // very outlines the compact kernel exists to keep circular.
-          const veil = strength >= SURFACE ? 0 : 1 - strength / SURFACE
-          // Skewed low rather than used flat, so the grain is mostly faint with
-          // occasional denser specks instead of sitting evenly at its midpoint.
           const n = grain[p]
-          const texture = TEXTURE_FLOOR + n * Math.sqrt(n) * TEXTURE_RANGE
-          const value = shade(strength + texture * veil)
+          const density = DOT_FLOOR + n * Math.sqrt(n) * DOT_RANGE
 
+          let hover = 0
+          if (pointer.active) {
+            const dx = x - pointer.x
+            const dy = y - pointer.y
+            hover = spotlight(dx * dx + dy * dy, REVEAL_REACH)
+          }
+          accent[p] = tinted(hover, edge[p]) ? 1 : 0
+
+          const value = density * 255
           const i = p * 4
           data[i] = value
           data[i + 1] = value
@@ -167,12 +133,11 @@ export function DitherHero({ className }: { className?: string }) {
 
       // Dither in plain black and white, then recolour.
       //
-      // Handing the accent straight to the ditherer as a duotone looked
-      // tidier but bent the shape: the accent's luminance is nowhere near
-      // zero, so every solid pixel emitted a large quantisation error that
-      // error diffusion carried down and to the right, smearing a circle into
-      // a lopsided blob with one flat edge. Against black and white there is
-      // no such error, so the circle stays a circle whatever colour it ends up.
+      // Handing a colour straight to the ditherer as a duotone looked tidier but
+      // bent the result: an accent's luminance is nowhere near zero, so every
+      // solid pixel emitted a large quantisation error that error diffusion
+      // carried down and to the right, smearing the field. Against black and
+      // white there is no such error.
       const image = renderDither(source, {
         ...DEFAULT_SETTINGS,
         pixelSize: 1,
@@ -186,29 +151,37 @@ export function DitherHero({ className }: { className?: string }) {
 
       const [inkR, inkG, inkB] = hexToRgb(ink)
       const [paperR, paperG, paperB] = hexToRgb(paper)
+      const [dotR, dotG, dotB] = hexToRgb(dot)
       const pixels = image.data
-      for (let i = 0; i < pixels.length; i += 4) {
+
+      for (let p = 0, i = 0; i < pixels.length; i += 4, p++) {
         const lit = pixels[i] > 127
-        pixels[i] = lit ? inkR : paperR
-        pixels[i + 1] = lit ? inkG : paperG
-        pixels[i + 2] = lit ? inkB : paperB
+        pixels[i] = lit ? (accent[p] ? inkR : dotR) : paperR
+        pixels[i + 1] = lit ? (accent[p] ? inkG : dotG) : paperG
+        pixels[i + 2] = lit ? (accent[p] ? inkB : dotB) : paperB
       }
 
       out.putImageData(image, 0, 0)
     }
 
-    const loop = () => {
-      paint()
-      frame++
-      raf = requestAnimationFrame(loop)
-    }
+    // Coalesce repaints to one per frame while the pointer is moving. The timer
+    // races the frame because frame callbacks never fire in a hidden tab, which
+    // would otherwise leave the canvas blank until it was foregrounded.
+    let frame = 0
+    let timer = 0
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
 
-    // With motion reduced the orbits are frozen, but the cursor still draws
-    // blobs to it — that is a direct response to input, not ambient movement.
-    const repaint = () => {
-      if (!still) return
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(paint)
+      let spent = false
+      const run = () => {
+        if (spent) return
+        spent = true
+        paint()
+      }
+
+      frame = requestAnimationFrame(run)
+      timer = window.setTimeout(run, 32)
     }
 
     const onPointerMove = (event: PointerEvent) => {
@@ -217,25 +190,19 @@ export function DitherHero({ className }: { className?: string }) {
       pointer.x = ((event.clientX - rect.left) / rect.width) * WIDTH
       pointer.y = ((event.clientY - rect.top) / rect.height) * HEIGHT
       pointer.active = true
-      repaint()
+      schedule()
     }
 
     const onPointerLeave = () => {
       pointer.active = false
-      repaint()
+      schedule()
     }
+
+    paint()
 
     display.addEventListener("pointermove", onPointerMove)
     display.addEventListener("pointerleave", onPointerLeave)
-
-    if (still) paint()
-    else loop()
-
-    const themeWatcher = new MutationObserver(() => {
-      cancelAnimationFrame(raf)
-      if (still) paint()
-      else loop()
-    })
+    const themeWatcher = new MutationObserver(schedule)
     themeWatcher.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class"],
@@ -243,7 +210,8 @@ export function DitherHero({ className }: { className?: string }) {
     document.addEventListener("visibilitychange", paint)
 
     return () => {
-      cancelAnimationFrame(raf)
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
       themeWatcher.disconnect()
       document.removeEventListener("visibilitychange", paint)
       display.removeEventListener("pointermove", onPointerMove)
