@@ -12,22 +12,23 @@ const WIDTH = 420
 const HEIGHT = 150
 
 /**
- * Three big circles, drifting in and out of each other's reach.
- *
- * The middle one runs in counter-phase to the outer two, so the group keeps
- * closing up and opening out rather than sliding along together. Spacing runs
- * from about 84px to 152px against radii that touch around 120, which is what
- * gives a mix of fully fused and visibly separate.
+ * Three circles at distinctly different sizes, drifting in and out of each
+ * other's reach. The middle one runs in counter-phase to the outer two, so the
+ * group keeps closing up and opening out rather than sliding along together.
  *
  * Sizing has to allow for the dithered falloff, not just the circle: the
- * shading band carries visible texture out to about 1.27 radii. Only that faint
- * outer band reaches the top and bottom edges; the solid core stays well inside,
- * which is the difference between a soft bleed and a circle sheared flat.
+ * shading band carries visible texture out to about 1.27 radii. The large one
+ * lets that band run off the top and bottom, which is a soft fade rather than a
+ * cut so long as its solid core stays inside — hence its smaller vertical
+ * drift, which keeps that core clear of the edges.
  */
 const BALLS = [
-  { x: 0.22, y: 0.5, r: 62, dx: 0.07, dy: 0.03, sx: 0.2, sy: 0.15, px: 0, py: 0.6 },
-  { x: 0.5, y: 0.47, r: 58, dx: 0.08, dy: 0.03, sx: 0.24, sy: 0.19, px: Math.PI, py: 2.4 },
-  { x: 0.78, y: 0.53, r: 54, dx: 0.07, dy: 0.03, sx: 0.2, sy: 0.17, px: 0, py: 4.1 },
+  // xl
+  { x: 0.3, y: 0.5, r: 68, dx: 0.06, dy: 0.02, sx: 0.2, sy: 0.15, px: 0, py: 0.6 },
+  // l
+  { x: 0.58, y: 0.46, r: 48, dx: 0.07, dy: 0.04, sx: 0.24, sy: 0.19, px: Math.PI, py: 2.4 },
+  // m
+  { x: 0.82, y: 0.56, r: 32, dx: 0.06, dy: 0.05, sx: 0.2, sy: 0.17, px: 0, py: 4.1 },
 ]
 
 /** How much of the gap to the cursor a blob closes, and how far it may travel. */
