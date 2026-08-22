@@ -89,39 +89,25 @@ outright rather than merely the fallback for anyone whose system has not asked
 for light. The palette lives entirely in CSS variables, so the whole
 interface follows from two blocks in `app/globals.css`.
 
-The animated hero on the empty state reads its two colours from those same
+The hero on the empty state reads its two colours from those same
 variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is three circles at sharply descending sizes, rendered as a metaball field: each blob is a
-smooth bump, the bumps add, and the sum is shaded rather than thresholded, so
-they bulge together and fuse where they meet. The middle one drifts in
-counter-phase to the outer two, and hovering draws them all to the cursor —
-each closing a fraction of its own gap, so the distant ones travel further and
-the group gathers rather than shuffling across in formation. The maths lives in
-`lib/image/metaballs.ts`, pure and tested; a whole frame costs about 5 ms.
+That hero is a field of dots put through the same Floyd–Steinberg pass a
+photograph gets, in ink on paper. Nothing moves and nothing responds — it is
+painted once, and again only when the theme changes.
 
-Under it all sits a faint grain, so the paper carries texture rather than
-reading as flat colour. It is dithered by the same engine as the blobs — same
-dot grid, same ink — rather than laid over as a CSS overlay, which would be a
-second visual language on the same panel. It fades out as the field rises, so it
-never disturbs a circle's outline, and it comes from a seeded lattice rather
-than per-pixel randomness: the latter dithers down to even static with no
-structure, and would crawl between frames.
+Its density comes from a seeded value-noise lattice, smoothly interpolated,
+which is what makes it read as grain rather than as an even screen. Per-pixel
+randomness was the obvious approach and the wrong one: dithered, it flattens
+into static with no structure, and regenerated each frame it would crawl.
 
-Two details there exist only because their absence looked wrong:
-
-- **The bump has compact support** — exactly zero past its influence radius —
-  rather than the `1/d²` a textbook metaball uses. An inverse-square tail never
-  reaches zero, so every blob keeps tugging on every other from across the
-  canvas and the outlines sag into lopsided amoebas instead of circles.
-- **The dither runs in plain black and white, and the result is recoloured
-  afterwards.** Handing the accent colour straight to the ditherer as a duotone
-  is tidier but bends the shape: the accent's luminance is nowhere near zero, so
-  every solid pixel emits a large quantisation error that error diffusion
-  carries down and to the right, smearing the circle into a blob with one flat
-  edge.
+The dither itself runs in plain black and white and the result is recoloured
+afterwards. Handing the theme's colours straight to the ditherer as a duotone
+is tidier but bends the result: an ink whose luminance is nowhere near zero
+makes every solid pixel emit a large quantisation error, which error diffusion
+carries down and to the right, smearing the field.
 
 ## Inspecting the result
 
@@ -146,7 +132,7 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
-| `lib/image/metaballs.ts`, `noise.ts` | The hero's field, cursor pull, and grain |
+| `lib/image/noise.ts` | The value noise the hero's grain is built from |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 | `components/method-controls.tsx` | Left panel: how the dither is computed |
 | `components/style-controls.tsx` | Right panel: how it looks |
