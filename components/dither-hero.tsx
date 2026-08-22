@@ -26,11 +26,11 @@ const HEIGHT = 150
 const BALLS = [
   // xxl — at the ceiling of what the banner's height allows before its solid
   // core starts running off the edges, so it holds still vertically.
-  { x: 0.3, y: 0.5, r: 72, dx: 0.06, dy: 0.01, sx: 0.3, sy: 0.22, px: 0, py: 0.6 },
+  { x: 0.3, y: 0.5, r: 72, dx: 0.06, dy: 0.01, sx: 0.48, sy: 0.35, px: 0, py: 0.6 },
   // l
-  { x: 0.6, y: 0.44, r: 42, dx: 0.07, dy: 0.05, sx: 0.36, sy: 0.28, px: Math.PI, py: 2.4 },
+  { x: 0.6, y: 0.44, r: 42, dx: 0.07, dy: 0.05, sx: 0.58, sy: 0.45, px: Math.PI, py: 2.4 },
   // m
-  { x: 0.84, y: 0.58, r: 26, dx: 0.06, dy: 0.07, sx: 0.3, sy: 0.25, px: 0, py: 4.1 },
+  { x: 0.84, y: 0.58, r: 26, dx: 0.06, dy: 0.07, sx: 0.48, sy: 0.4, px: 0, py: 4.1 },
 ]
 
 /**
