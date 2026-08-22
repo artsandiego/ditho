@@ -48,6 +48,28 @@ export const METHODS: DitherMethod[] = [
 
 export const DEFAULT_METHOD_ID = "floyd-steinberg"
 
+/** What video falls back to when the chosen method cannot be used on it. */
+export const DEFAULT_VIDEO_METHOD_ID = "ordered"
+
+/**
+ * Whether a method's pattern holds still from one frame to the next.
+ *
+ * Ordered and halftone read their threshold from a fixed function of the pixel's
+ * position, so an unchanged pixel dithers the same way every frame. Error
+ * diffusion has no such guarantee: its output at any pixel depends on the error
+ * accumulated across everything before it, so a trivial change anywhere earlier
+ * reshuffles the whole pattern. Played back, that reads as the dots boiling —
+ * the picture crawls even where nothing is moving.
+ */
+export function isStableOverTime(methodId: string): boolean {
+  return getMethod(methodId).family !== "diffusion"
+}
+
+/** The methods worth offering for video, in the order they should be listed. */
+export function videoMethods(): DitherMethod[] {
+  return METHODS.filter((method) => isStableOverTime(method.id))
+}
+
 export function getMethod(id: string): DitherMethod {
   return METHODS.find((m) => m.id === id) ?? METHODS[0]
 }

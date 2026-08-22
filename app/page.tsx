@@ -1,6 +1,6 @@
 "use client"
 
-import { Crop, Download, ImagePlus } from "lucide-react"
+import { Crop, Download, Film, ImagePlus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -13,17 +13,17 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { UploadDropzone } from "@/components/upload-dropzone"
 import { VideoProgress } from "@/components/video-progress"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
+import { DEFAULT_VIDEO_METHOD_ID, isStableOverTime } from "@/lib/dither"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
 import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
 import {
   downloadImage,
   exportFilename,
+  saveBlob,
   FORMATS,
   type ExportFormat,
 } from "@/lib/image/export"
-import { saveBlob } from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
 import { probeVideo, type VideoInfo } from "@/lib/video/probe"
 import { renderVideo } from "@/lib/video/render"
@@ -60,7 +60,6 @@ export default function Home() {
   // Present only for video. The still in `source` is one frame out of it, which
   // is what every control and the cropper actually operate on.
   const [video, setVideo] = useState<VideoInfo | null>(null)
-  const [at, setAt] = useState(0)
   const [render, setRender] = useState<{ frames: number; total: number } | null>(null)
   const abort = useRef<AbortController | null>(null)
 
@@ -94,11 +93,21 @@ export default function Home() {
       const start = info ? info.duration / 3 : 0
       const loaded = info ? await videoStill(info, start) : await loadImageFile(file)
 
+      // Error diffusion recomputes its pattern every frame, so it boils on
+      // playback. Video is offered only the methods that hold still, and a
+      // choice carried over from a photo is moved to one of them.
+      if (info) {
+        setSettings((current) =>
+          isStableOverTime(current.methodId)
+            ? current
+            : { ...current, methodId: DEFAULT_VIDEO_METHOD_ID },
+        )
+      }
+
       releaseUrl()
       liveUrl.current = loaded.url
       video?.input.dispose()
       setVideo(info)
-      setAt(start)
       setSource(loaded)
       setCropState(initialCropState(loaded))
       setCropped(null)
@@ -109,21 +118,6 @@ export default function Home() {
       setBusy(false)
     }
   }, [video])
-
-  /** Move the preview to another frame, keeping the crop and settings as they are. */
-  const scrubTo = async (timestamp: number) => {
-    if (!video) return
-    setAt(timestamp)
-    try {
-      const still = await videoStill(video, timestamp)
-      releaseUrl()
-      liveUrl.current = still.url
-      setSource(still)
-      if (cropState?.area) setCropped(cropToCanvas(still.element, cropState.area))
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not read that frame.")
-    }
-  }
 
   const confirmCrop = () => {
     if (!source || !cropState?.area) return
@@ -277,19 +271,13 @@ export default function Home() {
             </div>
 
             {video && (
-              <div className="instrument floating absolute inset-x-5 bottom-5 flex items-center gap-4 rounded-2xl px-4 py-3 lg:inset-x-auto lg:bottom-8 lg:left-1/2 lg:w-[420px] lg:-translate-x-1/2">
-                <span className="label-key shrink-0">Frame</span>
-                <Slider
-                  value={[at]}
-                  min={0}
-                  max={Math.max(0.001, video.duration)}
-                  step={Math.min(0.04, video.duration / 200)}
-                  onValueChange={([next]) => scrubTo(next)}
-                  aria-label="Preview frame"
-                />
-                <span className="value-readout w-20 shrink-0 text-right tabular-nums">
-                  {at.toFixed(2)}s / {video.duration.toFixed(2)}s
-                </span>
+              <div className="floating absolute inset-x-5 bottom-5 flex items-start gap-3 rounded-2xl px-4 py-3 lg:inset-x-auto lg:bottom-8 lg:left-1/2 lg:w-[440px] lg:-translate-x-1/2">
+                <Film className="mt-0.5 size-4 shrink-0 text-signal" strokeWidth={1.75} />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  <span className="text-foreground">This is a still preview.</span> It shows
+                  one frame so you can see how the settings land. Exporting applies them to
+                  every frame and gives you the whole {video.duration.toFixed(1)}s video.
+                </p>
               </div>
             )}
 
@@ -327,6 +315,7 @@ export default function Home() {
               <MethodControls
                 settings={settings}
                 onChange={setSettings}
+                forVideo={video !== null}
                 resolution={
                   result ? { width: result.image.width, height: result.image.height } : null
                 }

@@ -132,9 +132,14 @@ Two things worth knowing:
   everywhere, the worst case for a DCT codec — the same property measured on the
   JPEG export. At an ordinary bitrate H.264 turns the dots to mush. Measured on
   an exported frame, 97.5% of pixels still sit at the extremes.
-- **Error diffusion boils.** The pattern is recomputed per frame, so it crawls
-  even where nothing moves, while ordered and halftone hold still. Both are
-  available; the shimmer is a look, not a bug.
+- **Video is offered only the stable methods.** Ordered and halftone read their
+  threshold from a fixed function of a pixel's position, so an unchanged pixel
+  dithers the same way every frame. Error diffusion has no such guarantee — its
+  output at any pixel depends on error accumulated from everything before it, so
+  a trivial change reshuffles the whole pattern and the picture visibly boils. A
+  method carried over from a photo is moved to a stable one when a video loads,
+  and the panel says why. It compresses better too: the same clip came out at
+  304 KB ordered against 652 KB with Floyd–Steinberg.
 
 ## Inspecting the result
 
