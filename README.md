@@ -84,8 +84,9 @@ quality 0.95.
 
 ## Theming
 
-Light and dark, remembered across visits and following the system by default,
-via `next-themes`. The palette lives entirely in CSS variables, so the whole
+Light and dark via `next-themes`, remembered across visits. Dark is the default
+outright rather than merely the fallback for anyone whose system has not asked
+for light. The palette lives entirely in CSS variables, so the whole
 interface follows from two blocks in `app/globals.css`.
 
 The animated hero on the empty state reads its two colours from those same
@@ -93,14 +94,15 @@ variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is a metaball field — each blob contributing `radius² / distance²`,
-summed and shaded rather than thresholded, then run through the same error
-diffusion a photograph gets. Summing is what makes two blobs bulge toward each
-other and fuse as they meet instead of sliding past as separate discs; shading
-the sum rather than cutting it at the surface leaves a gradient for the dither
-to bite into. The cursor shoves blobs away from it, easing in and out. The
-maths lives in `lib/image/metaballs.ts`, pure and tested; a whole frame costs
-about 5 ms at this size.
+That hero is two big circles rendered as a metaball field — each contributing
+`radius² / distance²`, summed and shaded rather than thresholded, then run
+through the same error diffusion a photograph gets. Summing is what makes them
+bulge toward each other and fuse as they meet instead of sliding past as two
+discs; shading the sum rather than cutting it at the surface leaves a gradient
+for the dither to bite into. They swing in opposite phase on a ~29 second
+approach, fused for about 61% of it, and the cursor shoves them away from it.
+The maths lives in `lib/image/metaballs.ts`, pure and tested; a whole frame
+costs about 5 ms at this size.
 
 ## Inspecting the result
 

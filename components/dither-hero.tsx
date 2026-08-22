@@ -11,15 +11,17 @@ const WIDTH = 420
 const HEIGHT = 150
 
 /**
- * Blobs on slow independent orbits, spaced so neighbours drift in and out of
- * each other's reach — close enough to merge for a while, then part again.
+ * Two big circles, swinging toward and away from each other in opposite phase.
+ *
+ * Their centres close to roughly 66px apart and open back out to about 218,
+ * against a combined radius of 120 — so they spend part of every cycle clearly
+ * fused and the rest clearly apart, which is the whole thing worth watching.
+ * The vertical drifts run at unrelated speeds so they never meet the same way
+ * twice.
  */
 const BALLS = [
-  { x: 0.16, y: 0.44, r: 40, dx: 0.17, dy: 0.26, sx: 0.31, sy: 0.23, px: 0.0, py: 0.7 },
-  { x: 0.34, y: 0.6, r: 34, dx: 0.18, dy: 0.3, sx: 0.24, sy: 0.35, px: 1.7, py: 2.1 },
-  { x: 0.5, y: 0.4, r: 46, dx: 0.2, dy: 0.24, sx: 0.19, sy: 0.28, px: 3.1, py: 0.4 },
-  { x: 0.66, y: 0.62, r: 36, dx: 0.18, dy: 0.28, sx: 0.27, sy: 0.21, px: 4.4, py: 3.9 },
-  { x: 0.84, y: 0.42, r: 42, dx: 0.17, dy: 0.26, sx: 0.22, sy: 0.33, px: 5.6, py: 1.1 },
+  { x: 0.33, y: 0.48, r: 62, dx: 0.09, dy: 0.16, sx: 0.22, sy: 0.17, px: 0, py: 0.6 },
+  { x: 0.67, y: 0.52, r: 58, dx: 0.09, dy: 0.15, sx: 0.22, sy: 0.21, px: Math.PI, py: 2.4 },
 ]
 
 /** How far the cursor is felt, and how hard it shoves, in canvas pixels. */
