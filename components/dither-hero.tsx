@@ -5,7 +5,8 @@ import { useEffect, useRef } from "react"
 import { hexToRgb } from "@/lib/dither"
 import { DEFAULT_SETTINGS, renderDither } from "@/lib/dither/pipeline"
 import { context2d, createCanvas } from "@/lib/image/canvas"
-import { attraction, fieldAt, shade, type Blob } from "@/lib/image/metaballs"
+import { attraction, fieldAt, shade, SURFACE, type Blob } from "@/lib/image/metaballs"
+import { valueNoise } from "@/lib/image/noise"
 
 // Wide and shallow, to be stretched across the top of the card.
 const WIDTH = 420
@@ -30,6 +31,21 @@ const BALLS = [
   // m
   { x: 0.82, y: 0.56, r: 32, dx: 0.06, dy: 0.05, sx: 0.2, sy: 0.17, px: 0, py: 4.1 },
 ]
+
+/**
+ * A grain laid under the blobs so the paper carries texture instead of reading
+ * as flat colour.
+ *
+ * Expressed as a floor plus a range rather than one amount, because those are
+ * the two things worth controlling: the floor keeps a light speckle everywhere,
+ * the range decides how far it drifts. Both are tiny — this lands between about
+ * 1% and 6% ink, which is texture you only notice once it is gone. The veil
+ * below keeps it clear of the circles themselves.
+ */
+const TEXTURE_FLOOR = 0.108
+const TEXTURE_RANGE = 0.036
+const TEXTURE_CELL = 4
+const TEXTURE_SEED = 0x5eed
 
 /** How much of the gap to the cursor a blob closes, and how far it may travel. */
 const FOLLOW_FRACTION = 0.55
@@ -88,6 +104,9 @@ export function DitherHero({ className }: { className?: string }) {
     const ctx = context2d(source, { willReadFrequently: true })
     const field = ctx.createImageData(WIDTH, HEIGHT)
 
+    // Static: the grain is the paper, so it must not crawl between frames.
+    const grain = valueNoise(WIDTH, HEIGHT, TEXTURE_CELL, TEXTURE_SEED)
+
     const readTheme = themeReader()
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
@@ -122,8 +141,17 @@ export function DitherHero({ className }: { className?: string }) {
       const data = field.data
       for (let y = 0; y < HEIGHT; y++) {
         for (let x = 0; x < WIDTH; x++) {
-          const value = shade(fieldAt(blobs, x, y))
-          const i = (y * WIDTH + x) * 4
+          const p = y * WIDTH + x
+          const strength = fieldAt(blobs, x, y)
+
+          // Full grain on bare paper, none at all by the time the field reaches
+          // a blob's surface. Letting it run all the way in would wobble the
+          // very outlines the compact kernel exists to keep circular.
+          const veil = strength >= SURFACE ? 0 : 1 - strength / SURFACE
+          const texture = TEXTURE_FLOOR + grain[p] * TEXTURE_RANGE
+          const value = shade(strength + texture * veil)
+
+          const i = p * 4
           data[i] = value
           data[i + 1] = value
           data[i + 2] = value

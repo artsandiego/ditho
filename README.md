@@ -102,6 +102,14 @@ each closing a fraction of its own gap, so the distant ones travel further and
 the group gathers rather than shuffling across in formation. The maths lives in
 `lib/image/metaballs.ts`, pure and tested; a whole frame costs about 5 ms.
 
+Under it all sits a faint grain, so the paper carries texture rather than
+reading as flat colour. It is dithered by the same engine as the blobs — same
+dot grid, same ink — rather than laid over as a CSS overlay, which would be a
+second visual language on the same panel. It fades out as the field rises, so it
+never disturbs a circle's outline, and it comes from a seeded lattice rather
+than per-pixel randomness: the latter dithers down to even static with no
+structure, and would crawl between frames.
+
 Two details there exist only because their absence looked wrong:
 
 - **The bump has compact support** — exactly zero past its influence radius —
@@ -138,6 +146,7 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
+| `lib/image/metaballs.ts`, `noise.ts` | The hero's field, cursor pull, and grain |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
 | `components/method-controls.tsx` | Left panel: how the dither is computed |
 | `components/style-controls.tsx` | Right panel: how it looks |
