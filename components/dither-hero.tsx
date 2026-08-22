@@ -24,12 +24,13 @@ const HEIGHT = 150
  * drift, which keeps that core clear of the edges.
  */
 const BALLS = [
-  // xl
-  { x: 0.3, y: 0.5, r: 68, dx: 0.06, dy: 0.02, sx: 0.2, sy: 0.15, px: 0, py: 0.6 },
+  // xxl — at the ceiling of what the banner's height allows before its solid
+  // core starts running off the edges, so it holds still vertically.
+  { x: 0.3, y: 0.5, r: 72, dx: 0.06, dy: 0.01, sx: 0.3, sy: 0.22, px: 0, py: 0.6 },
   // l
-  { x: 0.58, y: 0.46, r: 48, dx: 0.07, dy: 0.04, sx: 0.24, sy: 0.19, px: Math.PI, py: 2.4 },
+  { x: 0.6, y: 0.44, r: 42, dx: 0.07, dy: 0.05, sx: 0.36, sy: 0.28, px: Math.PI, py: 2.4 },
   // m
-  { x: 0.82, y: 0.56, r: 32, dx: 0.06, dy: 0.05, sx: 0.2, sy: 0.17, px: 0, py: 4.1 },
+  { x: 0.84, y: 0.58, r: 26, dx: 0.06, dy: 0.07, sx: 0.3, sy: 0.25, px: 0, py: 4.1 },
 ]
 
 /**
@@ -38,12 +39,12 @@ const BALLS = [
  *
  * Expressed as a floor plus a range rather than one amount, because those are
  * the two things worth controlling: the floor keeps a light speckle everywhere,
- * the range decides how far it drifts. Both are tiny — this lands between about
- * 1% and 6% ink, which is texture you only notice once it is gone. The veil
- * below keeps it clear of the circles themselves.
+ * the range decides how far it drifts. Both are tiny — this lands around 1% ink
+ * at its lightest, 3% typical and 8% at its densest, which is texture you only
+ * notice once it is gone. The veil below keeps it clear of the circles.
  */
-const TEXTURE_FLOOR = 0.108
-const TEXTURE_RANGE = 0.036
+const TEXTURE_FLOOR = 0.104
+const TEXTURE_RANGE = 0.052
 const TEXTURE_CELL = 4
 const TEXTURE_SEED = 0x5eed
 
@@ -148,7 +149,10 @@ export function DitherHero({ className }: { className?: string }) {
           // a blob's surface. Letting it run all the way in would wobble the
           // very outlines the compact kernel exists to keep circular.
           const veil = strength >= SURFACE ? 0 : 1 - strength / SURFACE
-          const texture = TEXTURE_FLOOR + grain[p] * TEXTURE_RANGE
+          // Skewed low rather than used flat, so the grain is mostly faint with
+          // occasional denser specks instead of sitting evenly at its midpoint.
+          const n = grain[p]
+          const texture = TEXTURE_FLOOR + n * Math.sqrt(n) * TEXTURE_RANGE
           const value = shade(strength + texture * veil)
 
           const i = p * 4

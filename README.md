@@ -94,7 +94,7 @@ variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
-That hero is three circles at descending sizes, rendered as a metaball field: each blob is a
+That hero is three circles at sharply descending sizes, rendered as a metaball field: each blob is a
 smooth bump, the bumps add, and the sum is shaded rather than thresholded, so
 they bulge together and fuse where they meet. The middle one drifts in
 counter-phase to the outer two, and hovering draws them all to the cursor —
