@@ -93,6 +93,15 @@ variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
 painting in the colours of the theme it had just left.
 
+That hero is a metaball field — each blob contributing `radius² / distance²`,
+summed and shaded rather than thresholded, then run through the same error
+diffusion a photograph gets. Summing is what makes two blobs bulge toward each
+other and fuse as they meet instead of sliding past as separate discs; shading
+the sum rather than cutting it at the surface leaves a gradient for the dither
+to bite into. The cursor shoves blobs away from it, easing in and out. The
+maths lives in `lib/image/metaballs.ts`, pure and tested; a whole frame costs
+about 5 ms at this size.
+
 ## Inspecting the result
 
 Scroll or pinch over the preview to zoom, drag to pan, double-click or **Fit**

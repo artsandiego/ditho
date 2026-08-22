@@ -38,7 +38,7 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
     >
       {/* Flush to the top edge and full width, with the wordmark sitting on it. */}
       <div className="relative">
-        <DitherHero className="block h-[168px] w-full sm:h-[196px]" />
+        <DitherHero className="block h-[210px] w-full sm:h-[248px]" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="text-3xl font-semibold tracking-[0.32em] text-foreground drop-shadow-sm sm:text-4xl">
             DITHO

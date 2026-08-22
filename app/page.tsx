@@ -4,6 +4,7 @@ import { Crop, Download, ImagePlus } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
+import { Credit } from "@/components/credit"
 import { DitherCanvas } from "@/components/dither-canvas"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
 import { MethodControls } from "@/components/method-controls"
@@ -161,8 +162,13 @@ export default function Home() {
       </header>
 
       {stage === "upload" && (
-        <main className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-14">
-          <UploadDropzone onSelect={handleSelect} busy={busy} />
+        <main className="flex flex-1 flex-col overflow-y-auto px-5 py-10">
+          <div className="flex flex-1 items-center justify-center">
+            <UploadDropzone onSelect={handleSelect} busy={busy} />
+          </div>
+          <div className="flex shrink-0 justify-center pt-10">
+            <Credit />
+          </div>
         </main>
       )}
 
@@ -224,18 +230,7 @@ export default function Home() {
             </div>
 
             <div className="shrink-0 border-t border-border p-3">
-              <p className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground/70">
-                Designed &amp; Dev by{" "}
-                <a
-                  href="https://artsandiego.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground underline decoration-dotted underline-offset-2 transition-colors hover:text-signal"
-                >
-                  Art
-                </a>{" "}
-                and his buddy Claude
-              </p>
+              <Credit />
             </div>
           </Panel>
 
