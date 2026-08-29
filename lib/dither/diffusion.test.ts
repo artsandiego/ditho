@@ -42,7 +42,7 @@ describe("diffuse", () => {
     ).toEqual(Array(16).fill(255))
   })
 
-  it("emits only palette colours, whatever the kernel", () => {
+  it("emits only palette colors, whatever the kernel", () => {
     const gray4: RGB[] = [
       [0, 0, 0],
       [85, 85, 85],

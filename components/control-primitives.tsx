@@ -128,7 +128,7 @@ export function Choice<T extends string>({
   )
 }
 
-/** A bare colour chip that opens the native picker. */
+/** A bare color chip that opens the native picker. */
 export function ColorChip({
   value,
   label,

@@ -30,7 +30,7 @@ const DOT_SEED = 0x5eed
  *
  * Reading these in an effect keyed on the theme looked simpler but was a race:
  * the effect could run before next-themes had swapped the class on <html>, so
- * the canvas kept painting in the colours of the theme just left. Keying off
+ * the canvas kept painting in the colors of the theme just left. Keying off
  * the live class instead cannot get out of step, whatever order things run in.
  */
 function themeReader() {
@@ -98,9 +98,9 @@ export function DitherHero({ className }: { className?: string }) {
 
       ctx.putImageData(field, 0, 0)
 
-      // Dither in plain black and white, then recolour.
+      // Dither in plain black and white, then recolor.
       //
-      // Handing the theme's colours straight to the ditherer as a duotone looked
+      // Handing the theme's colors straight to the ditherer as a duotone looked
       // tidier but bent the result: an ink whose luminance is nowhere near zero
       // makes every solid pixel emit a large quantisation error, which error
       // diffusion carries down and to the right, smearing the field. Against

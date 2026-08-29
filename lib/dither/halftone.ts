@@ -63,7 +63,7 @@ function blurredLuminance(image: Bitmap, radius: number): Float32Array {
 export interface HalftoneOptions {
   palette: RGB[]
   cellSize: number
-  /** Screen angle in degrees. 45 is the classic single-colour newsprint angle. */
+  /** Screen angle in degrees. 45 is the classic single-color newsprint angle. */
   angle: number
   shape: HalftoneShape
   /** Horizontal stretch of a cell. 1 is round. */
@@ -138,14 +138,14 @@ export function halftone(image: Bitmap, options: HalftoneOptions): Bitmap {
   const out = new Uint8ClampedArray(width * height * 4)
 
   const ramp = [...palette]
-    .map((colour) => ({ colour, lum: luminance(colour[0], colour[1], colour[2]) }))
+    .map((color) => ({ color, lum: luminance(color[0], color[1], color[2]) }))
     .sort((a, b) => a.lum - b.lum)
 
   if (ramp.length === 1) {
     for (let i = 0; i < out.length; i += 4) {
-      out[i] = ramp[0].colour[0]
-      out[i + 1] = ramp[0].colour[1]
-      out[i + 2] = ramp[0].colour[2]
+      out[i] = ramp[0].color[0]
+      out[i + 1] = ramp[0].color[1]
+      out[i + 2] = ramp[0].color[2]
       out[i + 3] = 255
     }
     return { data: out, width, height }
@@ -188,14 +188,14 @@ export function halftone(image: Bitmap, options: HalftoneOptions): Bitmap {
       const du = (u - centreU) / aspect
       const dv = v - centreV
 
-      const colour = covered(shape, du, dv, extent(shape, coverage, cell))
-        ? ramp[lower].colour
-        : ramp[upper].colour
+      const color = covered(shape, du, dv, extent(shape, coverage, cell))
+        ? ramp[lower].color
+        : ramp[upper].color
 
       const i = (y * width + x) * 4
-      out[i] = colour[0]
-      out[i + 1] = colour[1]
-      out[i + 2] = colour[2]
+      out[i] = color[0]
+      out[i + 1] = color[1]
+      out[i + 2] = color[2]
       out[i + 3] = 255
     }
   }

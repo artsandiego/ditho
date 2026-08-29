@@ -84,7 +84,7 @@ describe("ordered", () => {
     expect(new Set(out).size).toBe(1)
   })
 
-  it("emits only palette colours for every matrix", () => {
+  it("emits only palette colors for every matrix", () => {
     const gray4: RGB[] = [
       [0, 0, 0],
       [85, 85, 85],
