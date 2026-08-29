@@ -2,7 +2,7 @@
 
 A one-bit image press. Drop in a photograph, frame it, and run it through error
 diffusion, an ordered screen, or a rotated halftone — in mono, duotone, or a
-colour palette. Everything happens in the browser: no upload, no server, no
+color palette. Everything happens in the browser: no upload, no server, no
 image ever leaves the tab.
 
 ```bash
@@ -52,21 +52,34 @@ Three details that are easy to get wrong, and are deliberate here:
   centred offset and re-quantising. The offset approach drags values that
   already sit exactly on a palette entry off it, which speckles clean whites.
 
-## Colour
+## Color
 
 **Duotone** keeps the two-tone maths and lets you choose the ink and paper.
-**Palette** quantises against a real colour set — Game Boy, CGA, Commodore 64,
-grey ramps, and others — diffusing error across R, G and B. Nearest-colour uses
+**Palette** quantises against a real color set — Game Boy, CGA, Commodore 64,
+grey ramps, and others — diffusing error across R, G and B. Nearest-color uses
 luminance-weighted distance; plain Euclidean RGB over-weights blue and turns
 skies muddy.
 
-**Custom** builds a set of two to eight colours of your own. Choosing it copies
+**Custom** builds a set of two to eight colors of your own. Choosing it copies
 whichever palette you were on, so tweaking an existing one does not mean
-retyping it — but only while the custom colours are untouched. Once edited they
+retyping it — but only while the custom colors are untouched. Once edited they
 are never overwritten.
 
+**Image** reads the set off the photograph itself, by median cut: repeatedly
+take whichever group of pixels spans the widest single channel and split it at
+that channel's median. Splitting at the median rather than the midpoint of the
+range is what holds up on real photographs — a frame that is four fifths sky
+still gets its remaining fifth divided, where halving the range would keep
+carving up the sky. No color is invented, so a picture with no true black in it
+produces a palette with no true black.
+
+Choosing it also moves you off error diffusion. Ordered and halftone decide
+between the two entries a pixel brackets, which any set satisfies; diffusion
+pays its rounding error off in neighbouring pixels, and a handful of colors
+read off a photograph is too sparse to settle that debt nearby.
+
 Halftone sorts the palette into a luminance ramp and screens each cell between
-the two levels that bracket it, so a four-colour set halftones across all four
+the two levels that bracket it, so a four-color set halftones across all four
 rather than collapsing to its extremes.
 
 ## Exporting
@@ -89,10 +102,10 @@ outright rather than merely the fallback for anyone whose system has not asked
 for light. The palette lives entirely in CSS variables, so the whole
 interface follows from two blocks in `app/globals.css`.
 
-The hero on the empty state reads its two colours from those same
+The hero on the empty state reads its two colors from those same
 variables. It watches the theme class on `<html>` rather than a React value:
 keying it on the latter raced next-themes updating the DOM, and the canvas kept
-painting in the colours of the theme it had just left.
+painting in the colors of the theme it had just left.
 
 That hero is a field of dots put through the same Floyd–Steinberg pass a
 photograph gets, in ink on paper. Nothing moves and nothing responds — it is
@@ -103,8 +116,8 @@ which is what makes it read as grain rather than as an even screen. Per-pixel
 randomness was the obvious approach and the wrong one: dithered, it flattens
 into static with no structure, and regenerated each frame it would crawl.
 
-The dither itself runs in plain black and white and the result is recoloured
-afterwards. Handing the theme's colours straight to the ditherer as a duotone
+The dither itself runs in plain black and white and the result is recolored
+afterwards. Handing the theme's colors straight to the ditherer as a duotone
 is tidier but bends the result: an ink whose luminance is nowhere near zero
 makes every solid pixel emit a large quantisation error, which error diffusion
 carries down and to the right, smearing the field.
@@ -160,7 +173,8 @@ at the same magnification — and resets on a new crop.
 | `lib/dither/kernels.ts`, `diffusion.ts` | Error-diffusion weights and their shared runner |
 | `lib/dither/matrices.ts`, `ordered.ts` | Threshold matrices and the ordered runner |
 | `lib/dither/halftone.ts` | Analytic rotated halftone screen |
-| `lib/dither/palette.ts` | Palettes, nearest-colour, bracketing |
+| `lib/dither/palette.ts` | Palettes, nearest-color, bracketing |
+| `lib/dither/extract.ts` | Median-cut palette read off the photograph |
 | `lib/dither/pipeline.ts` | Cropped canvas in, dithered `ImageData` out |
 | `lib/image/` | Loading, cropping, progressive downscaling, PNG and JPG export |
 | `lib/image/fit.ts` | Letterboxing and pan/zoom maths, kept pure and tested |
@@ -182,7 +196,7 @@ Measured on an M-series Mac, per render:
 | --- | --- |
 | Defaults (400×225 grid, mono) | ~4 ms |
 | Pixel size 1 (1200×675), mono | ~40 ms |
-| Pixel size 1, 16-colour palette | ~80 ms |
+| Pixel size 1, 16-color palette | ~80 ms |
 | Halftone, full grid | ~31 ms |
 
 Renders are coalesced to one per animation frame, so dragging a slider stays

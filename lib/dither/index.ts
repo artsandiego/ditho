@@ -70,12 +70,39 @@ export function videoMethods(): DitherMethod[] {
   return METHODS.filter((method) => isStableOverTime(method.id))
 }
 
+/** What an image palette moves to when the chosen method suits it badly. */
+export const DEFAULT_PALETTE_METHOD_ID = "ordered"
+
+/**
+ * Whether a method copes with an arbitrary, unevenly spaced set of colors.
+ *
+ * Ordered and halftone place a pixel between the two palette entries that
+ * bracket it and pick one, so any set works: the decision is local and bounded.
+ * Error diffusion instead carries the leftover difference into its neighbours,
+ * which only pays off if the palette is dense enough to settle that debt
+ * nearby. A handful of colors pulled off a photograph is not — so the error
+ * travels instead of dispersing, and the picture muddies and streaks.
+ *
+ * Deliberately separate from `isStableOverTime` despite selecting the same
+ * methods today. That one is a claim about frames and this one about color;
+ * they happen to agree, and nothing says they always will.
+ */
+export function suitsRichPalette(methodId: string): boolean {
+  return getMethod(methodId).family !== "diffusion"
+}
+
 export function getMethod(id: string): DitherMethod {
   return METHODS.find((m) => m.id === id) ?? METHODS[0]
 }
 
 export { MATRICES, getMatrix } from "./matrices"
 export { PALETTES, getPalette, hexToRgb, rgbToHex } from "./palette"
+export {
+  DEFAULT_IMAGE_COLORS,
+  MAX_IMAGE_COLORS,
+  MIN_IMAGE_COLORS,
+  extractPalette,
+} from "./extract"
 export type {
   Bitmap,
   DitherFamily,

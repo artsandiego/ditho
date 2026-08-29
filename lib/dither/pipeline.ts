@@ -1,11 +1,12 @@
 import { downscaleCanvas, readImageData } from "@/lib/image/canvas"
 
 import { applyCurve, toneCurve } from "./adjust"
+import { DEFAULT_IMAGE_COLORS, MIN_IMAGE_COLORS } from "./extract"
 import { DEFAULT_METHOD_ID, getMethod } from "./index"
 import { getPalette, hexToRgb } from "./palette"
 import type { HalftoneShape, RGB } from "./types"
 
-export type ColorMode = "duotone" | "palette"
+export type ColorMode = "duotone" | "palette" | "image"
 
 export interface DitherSettings {
   methodId: string
@@ -28,8 +29,17 @@ export interface DitherSettings {
   ink: string
   paper: string
   paletteId: string
-  /** Hex colours used when `paletteId` is "custom". */
+  /** Hex colors used when `paletteId` is "custom". */
   customColors: string[]
+  /**
+   * Hex colors read back off the photograph, used when `colorMode` is "image".
+   *
+   * Derived rather than chosen, so it is refilled whenever the crop or the
+   * count changes and never edited by hand.
+   */
+  imageColors: string[]
+  /** How many colors to pull out of the photograph. */
+  imageColorCount: number
 }
 
 export const CUSTOM_PALETTE_ID = "custom"
@@ -55,6 +65,8 @@ export const DEFAULT_SETTINGS: DitherSettings = {
   paper: "#ffffff",
   paletteId: "mono",
   customColors: DEFAULT_CUSTOM_COLORS,
+  imageColors: [],
+  imageColorCount: DEFAULT_IMAGE_COLORS,
 }
 
 /** Longest edge of the dither grid at pixelSize 1. */
@@ -102,6 +114,14 @@ const FALLBACK: RGB[] = [
 export function resolvePalette(settings: DitherSettings): RGB[] {
   if (settings.colorMode === "duotone") {
     return [hexToRgb(settings.ink), hexToRgb(settings.paper)]
+  }
+
+  if (settings.colorMode === "image") {
+    // Empty until a photograph has been read, and short of two entries on a
+    // frame with no distinguishable colors in it — a blank white upload, say.
+    return settings.imageColors.length >= MIN_IMAGE_COLORS
+      ? settings.imageColors.map(hexToRgb)
+      : FALLBACK
   }
 
   if (settings.paletteId === CUSTOM_PALETTE_ID) {

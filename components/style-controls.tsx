@@ -17,7 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PALETTES, getPalette, rgbToHex } from "@/lib/dither"
+import {
+  MAX_IMAGE_COLORS,
+  MIN_IMAGE_COLORS,
+  PALETTES,
+  getPalette,
+  rgbToHex,
+} from "@/lib/dither"
 import {
   CUSTOM_PALETTE_ID,
   DEFAULT_CUSTOM_COLORS,
@@ -30,11 +36,28 @@ import {
 const COLOR_MODES: ChoiceOption<ColorMode>[] = [
   { value: "duotone", label: "Duotone" },
   { value: "palette", label: "Palette" },
+  { value: "image", label: "Image" },
 ]
 
 const signed = (value: number) => (value > 0 ? `+${value}` : String(value))
 
-/** A colour the set does not already contain, so a new chip is visibly new. */
+/** The flat strip that previews whichever set of colors is in play. */
+function Swatches({ colors }: { colors: string[] }) {
+  return (
+    <div className="mx-5 mb-4 flex overflow-hidden rounded-md border border-white/10">
+      {colors.map((color, index) => (
+        <span
+          key={index}
+          title={color}
+          className="h-5 flex-1"
+          style={{ background: color }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** A color the set does not already contain, so a new chip is visibly new. */
 function nextColor(colors: string[]): string {
   return (
     ["#ffffff", "#000000", "#808080", "#ff3d0f"].find(
@@ -45,21 +68,21 @@ function nextColor(colors: string[]): string {
 
 const isDefaultCustom = (colors: string[]) =>
   colors.length === DEFAULT_CUSTOM_COLORS.length &&
-  colors.every((colour, index) => colour === DEFAULT_CUSTOM_COLORS[index])
+  colors.every((color, index) => color === DEFAULT_CUSTOM_COLORS[index])
 
 interface StyleControlsProps {
   settings: DitherSettings
   onChange: (next: DitherSettings) => void
 }
 
-/** How the dither looks: the tone driven into it, and the colours it lands on. */
+/** How the dither looks: the tone driven into it, and the colors it lands on. */
 export function StyleControls({ settings, onChange }: StyleControlsProps) {
   const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
   const palette = getPalette(settings.paletteId)
   const isCustom = settings.paletteId === CUSTOM_PALETTE_ID
 
   // Switching to Custom copies the set you were just on, so tweaking an
-  // existing palette does not mean retyping it. Only while the custom colours
+  // existing palette does not mean retyping it. Only while the custom colors
   // are still untouched — once edited, they are yours and never overwritten.
   const selectPalette = (paletteId: string) => {
     if (
@@ -105,7 +128,7 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
         />
       </Section>
 
-      <Section title="Colour">
+      <Section title="Color">
         <Choice
           label="Mode"
           options={COLOR_MODES}
@@ -113,7 +136,7 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
           onChange={(colorMode) => patch({ colorMode })}
         />
 
-        {settings.colorMode === "duotone" ? (
+        {settings.colorMode === "duotone" && (
           <div className="flex items-stretch gap-2 px-5 pb-4">
             <Swatch label="Ink" value={settings.ink} onChange={(ink) => patch({ ink })} />
             <Swatch
@@ -122,7 +145,39 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
               onChange={(paper) => patch({ paper })}
             />
           </div>
-        ) : (
+        )}
+
+        {settings.colorMode === "image" && (
+          <>
+            <Dial
+              label="Colors"
+              readout={String(settings.imageColorCount)}
+              value={settings.imageColorCount}
+              min={MIN_IMAGE_COLORS}
+              max={MAX_IMAGE_COLORS}
+              onChange={(imageColorCount) => patch({ imageColorCount })}
+            />
+
+            {settings.imageColors.length > 0 ? (
+              <Swatches colors={settings.imageColors} />
+            ) : (
+              <p className="px-5 pb-4 text-[10px] leading-snug text-muted-foreground/70">
+                Reading colors from the photo…
+              </p>
+            )}
+
+            <p className="-mt-1 px-5 pb-3 text-[11px] leading-relaxed text-muted-foreground/80">
+              <span className="text-foreground">Ordered or halftone works best here.</span>{" "}
+              Error diffusion muddies a small set of colors.
+            </p>
+
+            <p className="px-5 pb-4 text-[10px] leading-snug text-muted-foreground/70">
+              Pulled from your photo, dark to light. Re-framing re-reads them.
+            </p>
+          </>
+        )}
+
+        {settings.colorMode === "palette" && (
           <>
             <Row label="Set">
               <Select value={settings.paletteId} onValueChange={selectPalette}>
@@ -145,11 +200,11 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
             {isCustom ? (
               <div className="flex flex-col gap-2.5 px-5 pb-4">
                 <div className="flex flex-wrap gap-1.5">
-                  {settings.customColors.map((colour, index) => (
+                  {settings.customColors.map((color, index) => (
                     <div key={index} className="group relative">
                       <ColorChip
-                        value={colour}
-                        label={`Colour ${index + 1}`}
+                        value={color}
+                        label={`Color ${index + 1}`}
                         className="size-8"
                         onChange={(next) =>
                           patch({
@@ -162,7 +217,7 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
                       {settings.customColors.length > MIN_CUSTOM_COLORS && (
                         <button
                           type="button"
-                          aria-label={`Remove colour ${index + 1}`}
+                          aria-label={`Remove color ${index + 1}`}
                           onClick={() =>
                             patch({
                               customColors: settings.customColors.filter(
@@ -181,7 +236,7 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
                   {settings.customColors.length < MAX_CUSTOM_COLORS && (
                     <button
                       type="button"
-                      aria-label="Add colour"
+                      aria-label="Add color"
                       onClick={() =>
                         patch({
                           customColors: [
@@ -198,20 +253,11 @@ export function StyleControls({ settings, onChange }: StyleControlsProps) {
                 </div>
                 <p className="text-[10px] leading-snug text-muted-foreground/70">
                   Click a swatch to change it, × to drop it. {MIN_CUSTOM_COLORS}–
-                  {MAX_CUSTOM_COLORS} colours; tone is read from their brightness.
+                  {MAX_CUSTOM_COLORS} colors; tone is read from their brightness.
                 </p>
               </div>
             ) : (
-              <div className="mx-5 mb-4 flex overflow-hidden rounded-md border border-white/10">
-                {palette.colors.map((colour, index) => (
-                  <span
-                    key={index}
-                    title={rgbToHex(colour)}
-                    className="h-5 flex-1"
-                    style={{ background: rgbToHex(colour) }}
-                  />
-                ))}
-              </div>
+              <Swatches colors={palette.colors.map(rgbToHex)} />
             )}
           </>
         )}
