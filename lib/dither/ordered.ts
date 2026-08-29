@@ -11,7 +11,7 @@ import type { Bitmap, RGB } from "./types"
  * texture, and why it never smears detail the way error diffusion can.
  *
  * `strength` pulls the matrix toward or away from a flat 0.5 threshold: at 0
- * the pattern vanishes and this is plain nearest-colour quantisation, at 1 the
+ * the pattern vanishes and this is plain nearest-color quantisation, at 1 the
  * matrix is used as-is, above 1 the screen is exaggerated.
  */
 export function ordered(

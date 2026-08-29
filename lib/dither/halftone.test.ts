@@ -79,7 +79,7 @@ describe("halftone", () => {
     expect([...seen].sort((a, b) => a - b)).toEqual([85, 170])
   })
 
-  it("emits only palette colours", () => {
+  it("emits only palette colors", () => {
     const out = halftone(flat(48, 48, 100), base)
     const seen = new Set(Array.from({ length: 48 * 48 }, (_, p) => out.data[p * 4]))
 

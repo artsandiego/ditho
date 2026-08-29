@@ -24,7 +24,7 @@ describe("hexToRgb", () => {
     expect(hexToRgb("ff6a1f")).toEqual([255, 106, 31])
   })
 
-  it("is case-insensitive, since colour pickers disagree on which they emit", () => {
+  it("is case-insensitive, since color pickers disagree on which they emit", () => {
     expect(hexToRgb("#FF6A1F")).toEqual(hexToRgb("#ff6a1f"))
   })
 
@@ -45,33 +45,33 @@ describe("rgbToHex", () => {
     expect(rgbToHex([0, 0, 0])).toBe("#000000")
   })
 
-  it("round-trips every colour in every built-in palette", () => {
+  it("round-trips every color in every built-in palette", () => {
     for (const palette of PALETTES) {
-      for (const colour of palette.colors) {
-        expect(hexToRgb(rgbToHex(colour)), `${palette.id} ${colour}`).toEqual(colour)
+      for (const color of palette.colors) {
+        expect(hexToRgb(rgbToHex(color)), `${palette.id} ${color}`).toEqual(color)
       }
     }
   })
 })
 
 describe("PALETTES", () => {
-  // Sixty-odd triples typed by hand, where a slip produces a colour that is
+  // Sixty-odd triples typed by hand, where a slip produces a color that is
   // merely wrong rather than obviously broken.
   it("holds only whole channels inside [0, 255]", () => {
     for (const palette of PALETTES) {
-      for (const colour of palette.colors) {
-        expect(colour.length, palette.id).toBe(3)
+      for (const color of palette.colors) {
+        expect(color.length, palette.id).toBe(3)
 
-        for (const channel of colour) {
-          expect(Number.isInteger(channel), `${palette.id} ${colour}`).toBe(true)
-          expect(channel, `${palette.id} ${colour}`).toBeGreaterThanOrEqual(0)
-          expect(channel, `${palette.id} ${colour}`).toBeLessThanOrEqual(255)
+        for (const channel of color) {
+          expect(Number.isInteger(channel), `${palette.id} ${color}`).toBe(true)
+          expect(channel, `${palette.id} ${color}`).toBeGreaterThanOrEqual(0)
+          expect(channel, `${palette.id} ${color}`).toBeLessThanOrEqual(255)
         }
       }
     }
   })
 
-  it("gives every palette at least two colours to dither between", () => {
+  it("gives every palette at least two colors to dither between", () => {
     for (const palette of PALETTES) {
       expect(palette.colors.length, palette.id).toBeGreaterThanOrEqual(2)
     }
@@ -106,13 +106,13 @@ describe("nearestColor", () => {
     expect(result).toBe(MONO[0])
   })
 
-  it("returns a colour exactly when the pixel already sits on one", () => {
+  it("returns a color exactly when the pixel already sits on one", () => {
     for (const palette of PALETTES) {
-      for (const colour of palette.colors) {
-        const [r, g, b] = colour
+      for (const color of palette.colors) {
+        const [r, g, b] = color
 
-        expect(nearestColor(palette.colors, r, g, b), `${palette.id} ${colour}`).toEqual(
-          colour,
+        expect(nearestColor(palette.colors, r, g, b), `${palette.id} ${color}`).toEqual(
+          color,
         )
       }
     }
@@ -131,7 +131,7 @@ describe("nearestColor", () => {
 })
 
 describe("bracketColors", () => {
-  it("collapses to the single entry when the palette has one colour", () => {
+  it("collapses to the single entry when the palette has one color", () => {
     const only: RGB = [12, 34, 56]
     const bracket = bracketColors([only], 200, 200, 200)
 
@@ -140,17 +140,17 @@ describe("bracketColors", () => {
     expect(bracket.t).toBe(0)
   })
 
-  it("lands t on exactly 0 or 1 for a pixel sitting on a palette colour", () => {
+  it("lands t on exactly 0 or 1 for a pixel sitting on a palette color", () => {
     // This is the property that stops ordered dithering speckling clean whites
     // and blacks. Any drift off 0 or 1 here means an extreme can be pushed to
-    // the neighbouring colour by the threshold matrix, which is the bug this
+    // the neighbouring color by the threshold matrix, which is the bug this
     // function was written to remove.
     for (const palette of PALETTES) {
-      for (const colour of palette.colors) {
-        const [r, g, b] = colour
+      for (const color of palette.colors) {
+        const [r, g, b] = color
         const { t } = bracketColors(palette.colors, r, g, b)
 
-        expect(t === 0 || t === 1, `${palette.id} ${colour} → t=${t}`).toBe(true)
+        expect(t === 0 || t === 1, `${palette.id} ${color} → t=${t}`).toBe(true)
       }
     }
   })
@@ -177,7 +177,7 @@ describe("bracketColors", () => {
     }
   })
 
-  it("sits near the midpoint for a pixel halfway between two colours", () => {
+  it("sits near the midpoint for a pixel halfway between two colors", () => {
     // 127 against mono: 127 from black, 128 from white.
     expect(bracketColors(MONO, 127, 127, 127).t).toBeCloseTo(0.5, 1)
   })

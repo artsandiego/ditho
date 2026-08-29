@@ -14,8 +14,16 @@ import { UploadDropzone } from "@/components/upload-dropzone"
 import { VideoProgress } from "@/components/video-progress"
 import { Button } from "@/components/ui/button"
 import { useDitheredImage } from "@/hooks/use-dithered-image"
-import { DEFAULT_VIDEO_METHOD_ID, isStableOverTime } from "@/lib/dither"
+import {
+  DEFAULT_PALETTE_METHOD_ID,
+  DEFAULT_VIDEO_METHOD_ID,
+  extractPalette,
+  isStableOverTime,
+  rgbToHex,
+  suitsRichPalette,
+} from "@/lib/dither"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
+import { downscaleCanvas, readImageData } from "@/lib/image/canvas"
 import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
 import {
   downloadImage,
@@ -31,6 +39,21 @@ import { videoStill } from "@/lib/video/still"
 import { checkVideoSupport } from "@/lib/video/support"
 
 type Stage = "upload" | "crop" | "edit"
+
+/**
+ * The photograph's own colors, read off a small copy of the crop.
+ *
+ * A few hundred pixels describe the color distribution as well as several
+ * million, and reading a full 24-megapixel frame would allocate tens of
+ * megabytes to answer the same question.
+ */
+function readImageColors(canvas: HTMLCanvasElement, count: number): string[] {
+  const longest = Math.max(canvas.width, canvas.height)
+  const scale = Math.min(1, 256 / longest)
+  const small = downscaleCanvas(canvas, canvas.width * scale, canvas.height * scale)
+
+  return extractPalette(readImageData(small), count).map(rgbToHex)
+}
 
 /** Flush and stacked on a phone; a floating card either side once there is room. */
 function Panel({ side, children }: { side: "left" | "right"; children: ReactNode }) {
@@ -67,6 +90,39 @@ export default function Home() {
   const abort = useRef<AbortController | null>(null)
 
   const result = useDitheredImage(cropped, settings)
+
+  // The image palette is derived from the crop, so it is re-read whenever the
+  // crop or the count changes. Doing it on the event rather than in an effect
+  // keeps it out of the render loop: an effect that writes state it also
+  // depends on cascades an extra render every time.
+  //
+  // It is held in settings rather than recomputed per frame because a video
+  // render must dither every frame against one fixed palette — re-reading each
+  // frame would make the colors crawl.
+  const changeSettings = (next: DitherSettings) => {
+    const patched = { ...next }
+
+    // Arriving on an image palette also moves off error diffusion, which handles
+    // a sparse set of arbitrary colors badly. Only on the way in, so a method
+    // picked deliberately afterwards is left alone.
+    if (
+      next.colorMode === "image" &&
+      settings.colorMode !== "image" &&
+      !suitsRichPalette(next.methodId)
+    ) {
+      patched.methodId = DEFAULT_PALETTE_METHOD_ID
+    }
+
+    if (
+      cropped !== null &&
+      (next.imageColorCount !== settings.imageColorCount ||
+        (next.colorMode === "image" && next.imageColors.length === 0))
+    ) {
+      patched.imageColors = readImageColors(cropped, next.imageColorCount)
+    }
+
+    setSettings(patched)
+  }
 
   // Object URLs outlive the component that made them, so the live one is tracked
   // here and released whenever it is replaced. The ref is only ever written from
@@ -126,8 +182,16 @@ export default function Home() {
   const confirmCrop = () => {
     if (!source || !cropState?.area) return
     try {
-      setCropped(cropToCanvas(source.element, cropState.area))
+      const canvas = cropToCanvas(source.element, cropState.area)
+
+      setCropped(canvas)
       setCropSerial((serial) => serial + 1)
+      // Re-framing changes which colors are in shot, so the image palette is
+      // read again off the new crop rather than kept from the old one.
+      setSettings((current) => ({
+        ...current,
+        imageColors: readImageColors(canvas, current.imageColorCount),
+      }))
       setStage("edit")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not apply that crop.")
@@ -341,7 +405,7 @@ export default function Home() {
 
           <Panel side="right">
             <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-              <StyleControls settings={settings} onChange={setSettings} />
+              <StyleControls settings={settings} onChange={changeSettings} />
             </div>
           </Panel>
         </main>

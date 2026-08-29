@@ -119,15 +119,15 @@ export function nearestColor(palette: RGB[], r: number, g: number, b: number): R
   let bestDistance = Infinity
 
   for (let i = 0; i < palette.length; i++) {
-    const colour = palette[i]
-    const dr = r - colour[0]
-    const dg = g - colour[1]
-    const db = b - colour[2]
+    const color = palette[i]
+    const dr = r - color[0]
+    const dg = g - color[1]
+    const db = b - color[2]
     const distance = 0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db
 
     if (distance < bestDistance) {
       bestDistance = distance
-      best = colour
+      best = color
     }
   }
 
@@ -145,10 +145,10 @@ export interface Bracket {
 /**
  * The two palette entries a pixel falls between, and how far along it sits.
  *
- * Ordered dithering needs this rather than a plain nearest-colour lookup. The
+ * Ordered dithering needs this rather than a plain nearest-color lookup. The
  * obvious approach — add a centred offset to the pixel then quantise — drags
  * values that already sit exactly on a palette entry off it, which speckles
- * clean whites and blacks. Choosing *between* the two bracketing colours
+ * clean whites and blacks. Choosing *between* the two bracketing colors
  * instead leaves t at exactly 0 or 1 there, so the extremes are untouchable.
  */
 export function bracketColors(
@@ -165,10 +165,10 @@ export function bracketColors(
   let second = Infinity
 
   for (let i = 0; i < palette.length; i++) {
-    const colour = palette[i]
-    const dr = r - colour[0]
-    const dg = g - colour[1]
-    const db = b - colour[2]
+    const color = palette[i]
+    const dr = r - color[0]
+    const dg = g - color[1]
+    const db = b - color[2]
     const distance = Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db)
 
     if (distance < first) {
