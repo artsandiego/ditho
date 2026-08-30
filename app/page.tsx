@@ -1,6 +1,6 @@
 "use client"
 
-import { Crop, Download, Film, ImagePlus, X } from "lucide-react"
+import { Crop, Film, ImagePlus, RotateCcw, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -8,9 +8,11 @@ import { Credit } from "@/components/credit"
 import type { EditorTab } from "@/components/controls/sections"
 import { DitherCanvas } from "@/components/dither-canvas"
 import { EditorTabs } from "@/components/editor-tabs"
+import { ExportMenu } from "@/components/export-menu"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
 import { InstallPrompt } from "@/components/install-prompt"
 import { Logo } from "@/components/logo"
+import { PresetUpload } from "@/components/preset-upload"
 import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -27,13 +29,13 @@ import {
   suitsRichPalette,
 } from "@/lib/dither"
 import { DEFAULT_SETTINGS, type DitherSettings } from "@/lib/dither/pipeline"
+import { presetFromJson, presetFromLocation } from "@/lib/dither/preset"
 import { downscaleCanvas, readImageData } from "@/lib/image/canvas"
 import { cropToCanvas, isUsableCrop } from "@/lib/image/crop"
 import {
   downloadImage,
   exportFilename,
   saveBlob,
-  FORMATS,
   type ExportFormat,
 } from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
@@ -85,11 +87,16 @@ export default function Home() {
   const [cropped, setCropped] = useState<HTMLCanvasElement | null>(null)
   // Bumped per crop so the preview remounts with a fresh zoom and pan.
   const [cropSerial, setCropSerial] = useState(0)
-  const [settings, setSettings] = useState<DitherSettings>(DEFAULT_SETTINGS)
+  // A shared link carries its preset in the address. Read once, at the first
+  // render, so the settings are in place before a photo is even chosen. The
+  // upload screen shows no controls, so server and client render the same
+  // markup either way and there is nothing to mismatch on hydration.
+  const [settings, setSettings] = useState<DitherSettings>(() =>
+    typeof window === "undefined"
+      ? DEFAULT_SETTINGS
+      : (presetFromLocation(window.location.search) ?? DEFAULT_SETTINGS),
+  )
   const [busy, setBusy] = useState(false)
-  // Kept out of `settings` on purpose: that object drives the pipeline, and
-  // changing the export format should not cost a re-dither.
-  const [format, setFormat] = useState<ExportFormat>("png")
   // Present only for video. The still in `source` is one frame out of it, which
   // is what every control and the cropper actually operate on.
   const [video, setVideo] = useState<VideoInfo | null>(null)
@@ -139,6 +146,23 @@ export default function Home() {
     setSettings(patched)
   }
 
+  /**
+   * A preset applied to the picture already open.
+   *
+   * A preset never carries image colors — they belong to whichever photograph
+   * was open when it was saved. So one that asks for image mode arrives with an
+   * empty set, which `resolvePalette` reads as black and white. They have to be
+   * taken off the picture here, or the mode looks broken until some other
+   * control happens to trigger the read.
+   */
+  const applyPreset = (next: DitherSettings) => {
+    setSettings(
+      cropped !== null && next.colorMode === "image"
+        ? { ...next, imageColors: readImageColors(cropped, next.imageColorCount) }
+        : next,
+    )
+  }
+
   // Object URLs outlive the component that made them, so the live one is tracked
   // here and released whenever it is replaced. The ref is only ever written from
   // handlers and effects, never during render.
@@ -150,6 +174,19 @@ export default function Home() {
   useEffect(() => releaseUrl, [])
 
   const handleSelect = useCallback(async (file: File) => {
+    // A preset arrives the same way a picture does. It is settings, not media,
+    // so it is applied where it lands and the upload screen simply stays put.
+    if (file.type === "application/json" || file.name.endsWith(".json")) {
+      const loaded = presetFromJson(await file.text())
+      if (!loaded) {
+        toast.error("That file is not a Ditho preset.")
+        return
+      }
+      setSettings(loaded)
+      toast.success("Preset loaded. Choose a photo or video to put it on.")
+      return
+    }
+
     setBusy(true)
     try {
       const isVideo = file.type.startsWith("video/")
@@ -227,37 +264,56 @@ export default function Home() {
     setStage("upload")
   }
 
-  const download = async () => {
-    if (!result || !source) return
+  /**
+   * Every setting back to its default, keeping the photograph and the crop.
+   *
+   * The defaults name an error-diffusion method, which a video cannot use — its
+   * pattern is recomputed per frame and boils on playback — so a clip resets to
+   * the method video falls back to everywhere else rather than to the global
+   * default.
+   */
+  const resetEdits = () => {
+    setSettings(
+      video && !isStableOverTime(DEFAULT_SETTINGS.methodId)
+        ? { ...DEFAULT_SETTINGS, methodId: DEFAULT_VIDEO_METHOD_ID }
+        : DEFAULT_SETTINGS,
+    )
+  }
 
-    if (video) {
-      if (!cropState?.area) return
-      const controller = new AbortController()
-      abort.current = controller
-      setRender({ frames: 0, total: video.frames })
+  // Two entry points rather than one that branches, because the menu already
+  // knows which it is offering: a clip has only MP4, a photograph has the still
+  // formats and never both.
+  const exportVideo = async () => {
+    if (!video || !cropState?.area) return
 
-      try {
-        const out = await renderVideo({
-          input: video.input,
-          crop: cropState.area,
-          settings,
-          total: video.frames,
-          frameRate: video.frameRate,
-          signal: controller.signal,
-          onProgress: setRender,
-        })
-        const stem = video.name.replace(/\.[^./]+$/, "") || "video"
-        saveBlob(out.blob, `${stem}-${settings.methodId}.mp4`)
-      } catch (error) {
-        if ((error as Error)?.name !== "AbortError") {
-          toast.error(error instanceof Error ? error.message : "Render failed.")
-        }
-      } finally {
-        abort.current = null
-        setRender(null)
+    const controller = new AbortController()
+    abort.current = controller
+    setRender({ frames: 0, total: video.frames })
+
+    try {
+      const out = await renderVideo({
+        input: video.input,
+        crop: cropState.area,
+        settings,
+        total: video.frames,
+        frameRate: video.frameRate,
+        signal: controller.signal,
+        onProgress: setRender,
+      })
+      const stem = video.name.replace(/\.[^./]+$/, "") || "video"
+      saveBlob(out.blob, `${stem}-${settings.methodId}.mp4`)
+    } catch (error) {
+      if ((error as Error)?.name !== "AbortError") {
+        toast.error(error instanceof Error ? error.message : "Render failed.")
       }
-      return
+    } finally {
+      abort.current = null
+      setRender(null)
     }
+  }
+
+  const exportStill = async (format: ExportFormat) => {
+    if (!result || !source) return
 
     try {
       await downloadImage(
@@ -289,35 +345,16 @@ export default function Home() {
         </button>
 
         <div className="flex items-center gap-2">
+          {stage === "edit" && <PresetUpload onLoad={applyPreset} />}
+
           {stage === "edit" && (
-            <>
-              <div className={`flex items-center gap-1 ${video ? "hidden" : ""}`}>
-                {FORMATS.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => setFormat(entry.id)}
-                    aria-pressed={format === entry.id}
-                    className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
-                      format === entry.id
-                        ? "border-signal text-signal"
-                        : "border-border text-muted-foreground hover:border-input hover:text-foreground"
-                    }`}
-                  >
-                    {entry.label}
-                  </button>
-                ))}
-              </div>
-              <Button
-                type="button"
-                onClick={download}
-                disabled={!result || render !== null}
-                className="h-8 gap-1.5 rounded-lg px-4 text-xs"
-              >
-                <Download className="size-3.5" strokeWidth={1.75} />
-                {video ? "Export MP4" : "Export"}
-              </Button>
-            </>
+            <ExportMenu
+              settings={settings}
+              forVideo={video !== null}
+              disabled={!result || render !== null}
+              onExport={exportStill}
+              onExportVideo={exportVideo}
+            />
           )}
           <ThemeToggle />
         </div>
@@ -408,28 +445,43 @@ export default function Home() {
             active={tab}
             onActivate={setTab}
             onReframe={() => setStage("crop")}
+            onReset={resetEdits}
             onNewProject={reset}
           />
 
           <Panel side="left">
-            <div className="flex shrink-0 items-center gap-2 border-b border-border p-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setStage("crop")}
-                className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
-              >
-                <Crop className="size-3.5" strokeWidth={1.75} />
-                Re-frame
-              </Button>
+            {/* Starting over sits above the two that keep the photograph, since
+                it is the one that throws it away. */}
+            <div className="flex shrink-0 flex-col gap-2 border-b border-border p-3">
               <Button
                 type="button"
                 onClick={reset}
-                className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
+                className="h-9 w-full gap-1.5 rounded-lg text-xs"
               >
                 <ImagePlus className="size-3.5" strokeWidth={1.75} />
                 New project
               </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStage("crop")}
+                  className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
+                >
+                  <Crop className="size-3.5" strokeWidth={1.75} />
+                  Re-frame
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetEdits}
+                  className="h-8 flex-1 gap-1.5 rounded-lg text-xs"
+                >
+                  <RotateCcw className="size-3.5" strokeWidth={1.75} />
+                  Reset
+                </Button>
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
