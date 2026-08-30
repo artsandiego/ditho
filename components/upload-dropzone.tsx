@@ -108,7 +108,7 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
       <input
         ref={input}
         type="file"
-        accept="image/*,video/mp4,video/quicktime,video/webm"
+        accept="image/*,video/mp4,video/quicktime,video/webm,application/json,.json"
         hidden
         onChange={(event) => {
           take(event.target.files)

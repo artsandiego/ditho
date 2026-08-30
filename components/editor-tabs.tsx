@@ -1,6 +1,6 @@
 "use client"
 
-import { Crop, ImagePlus, type LucideIcon } from "lucide-react"
+import { Crop, ImagePlus, RotateCcw, type LucideIcon } from "lucide-react"
 
 import { CellSection } from "@/components/controls/cell-section"
 import { ColorSection } from "@/components/controls/color-section"
@@ -57,6 +57,8 @@ export interface EditorTabsProps {
   active: EditorTab | null
   onActivate: (tab: EditorTab | null) => void
   onReframe: () => void
+  /** Every setting back to its default, keeping the photograph. */
+  onReset: () => void
   onNewProject: () => void
 }
 
@@ -82,6 +84,7 @@ export function EditorTabs({
   active,
   onActivate,
   onReframe,
+  onReset,
   onNewProject,
 }: EditorTabsProps) {
   return (
@@ -107,6 +110,7 @@ export function EditorTabs({
         <span className="mx-1 w-px shrink-0 self-stretch bg-border" />
 
         <StripButton label="Reframe" icon={Crop} onClick={onReframe} />
+        <StripButton label="Reset" icon={RotateCcw} onClick={onReset} />
         <StripButton label="New project" icon={ImagePlus} onClick={onNewProject} />
       </div>
 
