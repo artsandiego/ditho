@@ -9,6 +9,7 @@ import type { EditorTab } from "@/components/controls/sections"
 import { DitherCanvas } from "@/components/dither-canvas"
 import { EditorTabs } from "@/components/editor-tabs"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
+import { InstallPrompt } from "@/components/install-prompt"
 import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -318,6 +319,13 @@ export default function Home() {
 
       {stage === "upload" && (
         <main className="flex flex-1 flex-col overflow-y-auto px-5 py-10">
+          {/* Only on the upload stage, and only below xl. The edit stage spends
+              every pixel it has on the photograph, and a banner there would take
+              some of it straight back. */}
+          <div className="mx-auto w-full max-w-md shrink-0">
+            <InstallPrompt />
+          </div>
+
           <div className="flex flex-1 items-center justify-center">
             <UploadDropzone onSelect={handleSelect} busy={busy} />
           </div>

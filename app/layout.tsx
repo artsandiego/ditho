@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist } from "next/font/google"
 
 import { ThemeProvider } from "@/components/theme-provider"
@@ -34,7 +34,28 @@ export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: TITLE,
   description: DESCRIPTION,
-  icons: { icon: "/assets/ditho-fav.png" },
+  applicationName: "Ditho",
+  icons: {
+    icon: "/assets/ditho-fav.png",
+    // iOS reads this tag rather than the manifest's icons when it saves a page
+    // to the home screen, so the two have to be declared separately.
+    apple: "/assets/apple-touch-icon.png",
+  },
+  // Named `Ditho` rather than the full title, which is what sits under the icon
+  // on a home screen and is truncated at roughly twelve characters.
+  // `black` rather than `black-translucent`: the translucent bar overlays the
+  // page, and this layout is a fixed-height flex column whose header would end
+  // up under the clock.
+  appleWebApp: {
+    capable: true,
+    title: "Ditho",
+    statusBarStyle: "black",
+  },
+  // `capable` above emits the standard `mobile-web-app-capable`, which iOS only
+  // began honouring alongside the manifest's `display` in 16.4. The superseded
+  // Apple spelling is what older iOS reads, and it costs one tag to keep those
+  // devices launching without browser chrome.
+  other: { "apple-mobile-web-app-capable": "yes" },
   openGraph: {
     type: "website",
     siteName: "Ditho",
@@ -55,6 +76,14 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: ["/assets/ditho-og.png"],
   },
+}
+
+/**
+ * Dark outright, matching the manifest, so the browser chrome and the splash
+ * screen do not flash white around a dark app on the way in.
+ */
+export const viewport: Viewport = {
+  themeColor: "#080807",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
