@@ -1,14 +1,35 @@
 "use client"
 
+import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+/**
+ * A titled group of controls.
+ *
+ * The title is optional because the same content serves two layouts: stacked
+ * into a panel, where each group needs naming, and one at a time inside a tab,
+ * where the tab already names it and a heading would only repeat it.
+ */
+export function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title?: string
+  icon?: LucideIcon
+  children: ReactNode
+}) {
   return (
     <section className="border-b border-border">
-      <h2 className="section-key border-b border-border/60 px-5 py-2.5">{title}</h2>
+      {title && (
+        <h2 className="section-key flex items-center gap-2 border-b border-border/60 px-5 py-2.5">
+          {Icon && <Icon className="size-3.5 text-signal" strokeWidth={1.75} />}
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   )

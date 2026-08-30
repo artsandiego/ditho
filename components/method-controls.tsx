@@ -1,32 +1,10 @@
 "use client"
 
-import {
-  Choice,
-  Dial,
-  Row,
-  Section,
-  Toggle,
-  type ChoiceOption,
-} from "@/components/control-primitives"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { getMethod, MATRICES, METHODS, videoMethods } from "@/lib/dither"
+import { Section } from "@/components/control-primitives"
+import { CellSection } from "@/components/controls/cell-section"
+import { MethodSection } from "@/components/controls/method-section"
+import { SECTIONS } from "@/components/controls/sections"
 import type { DitherSettings } from "@/lib/dither/pipeline"
-import type { HalftoneShape } from "@/lib/dither/types"
-
-const SHAPES: ChoiceOption<HalftoneShape>[] = [
-  { value: "circle", label: "●", title: "Circle" },
-  { value: "square", label: "■", title: "Square" },
-  { value: "diamond", label: "◆", title: "Diamond" },
-  { value: "line", label: "▬", title: "Line" },
-]
 
 interface MethodControlsProps {
   settings: DitherSettings
@@ -36,146 +14,27 @@ interface MethodControlsProps {
   forVideo?: boolean
 }
 
-/** How the dither is computed: which algorithm, and the shape of its cells. */
+/**
+ * How the dither is computed, as the desktop panel stacks it.
+ *
+ * The groups themselves live in `controls/` because the tab bar shows the same
+ * ones one at a time. This is only the arrangement.
+ */
 export function MethodControls({
   settings,
   onChange,
   resolution,
   forVideo = false,
 }: MethodControlsProps) {
-  const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
-  const family = getMethod(settings.methodId).family
-  const available = forVideo ? videoMethods() : METHODS
-
   return (
     <div className="instrument flex flex-col">
-      <Section title="Method">
-        <Row label="Algorithm">
-          <Select value={settings.methodId} onValueChange={(methodId) => patch({ methodId })}>
-            <SelectTrigger className="h-9 w-full text-[11px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {available.some((m) => m.family === "diffusion") && (
-                <SelectGroup>
-                  <SelectLabel className="label-key">Error diffusion</SelectLabel>
-                  {available
-                    .filter((m) => m.family === "diffusion")
-                    .map((method) => (
-                      <SelectItem key={method.id} value={method.id} className="text-[11px]">
-                        {method.name}
-                      </SelectItem>
-                    ))}
-                </SelectGroup>
-              )}
-              <SelectGroup>
-                <SelectLabel className="label-key">Pattern</SelectLabel>
-                {available
-                  .filter((m) => m.family !== "diffusion")
-                  .map((method) => (
-                    <SelectItem key={method.id} value={method.id} className="text-[11px]">
-                      {method.name}
-                    </SelectItem>
-                  ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Row>
-
-        {forVideo && (
-          <p className="px-5 pb-3 text-[11px] leading-relaxed text-muted-foreground/80">
-            These are the methods suited to video. Their pattern comes from each
-            pixel&rsquo;s position, so it holds still between frames — error diffusion
-            recomputes itself every frame and visibly boils on playback.
-          </p>
-        )}
-
-        {family === "diffusion" && (
-          <Toggle
-            label="Serpentine"
-            hint="Alternate the scan direction to break up directional streaking."
-            checked={settings.serpentine}
-            onChange={(serpentine) => patch({ serpentine })}
-          />
-        )}
-
-        {family === "ordered" && (
-          <>
-            <Row label="Pattern">
-              <Select
-                value={settings.matrixId}
-                onValueChange={(matrixId) => patch({ matrixId })}
-              >
-                <SelectTrigger className="h-9 w-full text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MATRICES.map((matrix) => (
-                    <SelectItem key={matrix.id} value={matrix.id} className="text-[11px]">
-                      {matrix.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Row>
-            <Dial
-              label="Strength"
-              readout={`${settings.patternStrength.toFixed(2)}×`}
-              value={settings.patternStrength}
-              min={0}
-              max={2}
-              step={0.05}
-              onChange={(patternStrength) => patch({ patternStrength })}
-            />
-          </>
-        )}
-
-        {family === "halftone" && (
-          <>
-            <Choice
-              label="Dot shape"
-              options={SHAPES}
-              value={settings.shape}
-              onChange={(shape) => patch({ shape })}
-            />
-            <Dial
-              label="Screen angle"
-              readout={`${settings.angle}°`}
-              value={settings.angle}
-              min={0}
-              max={90}
-              onChange={(angle) => patch({ angle })}
-            />
-          </>
-        )}
+      <Section title={SECTIONS.method.label} icon={SECTIONS.method.icon}>
+        <MethodSection settings={settings} onChange={onChange} forVideo={forVideo} />
       </Section>
 
-      <Section title="Cell">
-        <Dial
-          label={family === "halftone" ? "Dot size" : "Pixel size"}
-          readout={`${settings.pixelSize}×`}
-          value={settings.pixelSize}
-          min={1}
-          max={16}
-          onChange={(pixelSize) => patch({ pixelSize })}
-        />
-        <Dial
-          label="Aspect"
-          readout={`${settings.cellAspect.toFixed(2)}×`}
-          value={settings.cellAspect}
-          min={0.25}
-          max={4}
-          step={0.05}
-          onChange={(cellAspect) => patch({ cellAspect })}
-        />
+      <Section title={SECTIONS.cell.label} icon={SECTIONS.cell.icon}>
+        <CellSection settings={settings} onChange={onChange} resolution={resolution} />
       </Section>
-
-      <div className="flex items-baseline justify-between px-5 py-3.5">
-        <span className="label-key">Grid</span>
-        <span className="value-readout">
-          {resolution ? `${resolution.width}×${resolution.height}` : "—"}
-        </span>
-      </div>
     </div>
   )
 }
