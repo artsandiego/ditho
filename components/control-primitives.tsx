@@ -6,13 +6,6 @@ import type { ReactNode } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 
-/**
- * A titled group of controls.
- *
- * The title is optional because the same content serves two layouts: stacked
- * into a panel, where each group needs naming, and one at a time inside a tab,
- * where the tab already names it and a heading would only repeat it.
- */
 export function Section({
   title,
   icon: Icon,
@@ -149,7 +142,6 @@ export function Choice<T extends string>({
   )
 }
 
-/** A bare color chip that opens the native picker. */
 export function ColorChip({
   value,
   label,

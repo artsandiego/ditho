@@ -3,14 +3,6 @@ import type { LoadedImage } from "@/lib/image/load"
 import { frameAt } from "./frames"
 import type { VideoInfo } from "./probe"
 
-/**
- * Take one frame out of a video and present it as a still image.
- *
- * Deliberately shaped as `LoadedImage`, the same thing a photograph upload
- * produces. That lets the cropper, the preview and every control work on video
- * without knowing they are — the only thing that differs is where the pixels
- * came from.
- */
 export async function videoStill(
   info: VideoInfo,
   timestamp: number,

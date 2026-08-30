@@ -18,7 +18,6 @@ function TooltipProvider({
   )
 }
 
-/** Carries its own provider, so a lone tooltip needs no wrapper at the root. */
 function Tooltip(props: React.ComponentProps<typeof TooltipPrimitive.Root>) {
   return (
     <TooltipProvider>
@@ -43,8 +42,6 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          // The app's own popover colors rather than the browser's, so it reads
-          // as part of the interface in either theme.
           "z-50 rounded-md bg-popover px-2.5 py-1.5 text-[11px] text-popover-foreground shadow-md ring-1 ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0",
           className,
         )}

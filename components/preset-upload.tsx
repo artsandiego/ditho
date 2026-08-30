@@ -9,13 +9,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { DitherSettings } from "@/lib/dither/pipeline"
 import { presetFromJson } from "@/lib/dither/preset"
 
-/**
- * Opens a saved preset from the header, without leaving the picture.
- *
- * The upload screen takes a preset too, by drop or by picker, but that is only
- * reachable before a photograph is open. This is the other half: a look applied
- * to what is already on screen.
- */
 export function PresetUpload({
   onLoad,
 }: {
@@ -38,8 +31,6 @@ export function PresetUpload({
 
   return (
     <>
-      {/* A real tooltip rather than the `title` attribute: the native one is
-          drawn by the operating system and cannot follow the theme. */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -50,8 +41,6 @@ export function PresetUpload({
             className="h-8 gap-1.5 rounded-lg px-2.5 text-xs sm:px-3"
           >
             <FileUp className="size-3.5" strokeWidth={1.75} />
-            {/* Shortened rather than dropped on a narrow header: an icon alone
-                is a guess, and "Preset" beside an upload arrow is not. */}
             <span className="sm:hidden">Preset</span>
             <span className="hidden sm:inline">Upload Preset</span>
           </Button>
@@ -66,7 +55,6 @@ export function PresetUpload({
         hidden
         onChange={(event) => {
           take(event.target.files?.[0])
-          // Cleared so choosing the same file twice still fires a change.
           event.target.value = ""
         }}
       />

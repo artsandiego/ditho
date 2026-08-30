@@ -7,7 +7,6 @@ import {
 } from "./extract"
 import type { Bitmap, RGB } from "./types"
 
-/** One row of pixels, each given explicitly as RGBA. */
 function fromPixels(pixels: readonly (readonly [number, number, number, number])[]): Bitmap {
   const data = new Uint8ClampedArray(pixels.length * 4)
 
@@ -21,7 +20,6 @@ function fromPixels(pixels: readonly (readonly [number, number, number, number])
   return { data, width: pixels.length, height: 1 }
 }
 
-/** An opaque row holding `repeat` copies of each color. */
 function fromColors(colors: readonly RGB[], repeat: number): Bitmap {
   return fromPixels(
     colors.flatMap((color) =>
@@ -41,8 +39,6 @@ describe("extractPalette", () => {
   })
 
   it("recovers an even grey ramp exactly", () => {
-    // Median cut splits at the median sample rather than the midpoint of the
-    // range, so an evenly populated ramp separates cleanly into its own levels.
     const ramp: RGB[] = [
       [0, 0, 0],
       [85, 85, 85],
@@ -82,8 +78,6 @@ describe("extractPalette", () => {
   })
 
   it("returns fewer rather than padding with duplicates", () => {
-    // A flat frame holds one color. Handing back eight copies of it would give
-    // the kernels a palette of identical entries to choose between.
     expect(extractPalette(fromColors([[24, 90, 140]], 200), 8)).toEqual([[24, 90, 140]])
   })
 
@@ -120,8 +114,6 @@ describe("extractPalette", () => {
   })
 
   it("ignores near-transparent pixels", () => {
-    // Red is present in the buffer but fully transparent, so it must not reach
-    // the palette.
     const image = fromPixels([
       [255, 0, 0, 0],
       [255, 0, 0, 0],

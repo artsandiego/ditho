@@ -32,8 +32,6 @@ describe("valueNoise", () => {
   })
 
   it("varies smoothly rather than jumping like static", () => {
-    // The point of interpolating a lattice. Neighbouring pixels must be close,
-    // or the grain dithers down to even noise with no structure in it.
     const cell = 8
     const noise = valueNoise(W, H, cell, 7)
     let biggestStep = 0
@@ -47,8 +45,6 @@ describe("valueNoise", () => {
       }
     }
 
-    // Across one cell the value can span the full range, so a single pixel
-    // should never move more than a modest fraction of it.
     expect(biggestStep).toBeLessThan(2 / cell)
   })
 

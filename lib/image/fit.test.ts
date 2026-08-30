@@ -28,8 +28,6 @@ describe("letterbox", () => {
   })
 
   it("keeps the requested ratio rather than the container's", () => {
-    // The regression this guards: a 100x400 dither grid displayed for a square
-    // photograph must come out square, not 1:4.
     const fit = letterbox({ width: 1040, height: 764 }, 1)
 
     expect(fit.width).toBe(fit.height)
@@ -58,7 +56,6 @@ describe("zoomAbout", () => {
     const pointer = 250
     const next = zoomAbout(origin, pointer, 2, 4)
 
-    // The same image coordinate must land back under the cursor.
     const before = (pointer - origin) / 2
     const after = (pointer - next) / 4
 

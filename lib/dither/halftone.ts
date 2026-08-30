@@ -10,15 +10,6 @@ export function luminance(r: number, g: number, b: number): number {
 
 const clamp = (v: number, max: number) => (v < 0 ? 0 : v > max ? max : v)
 
-/**
- * Separable box blur over luminance.
- *
- * Each halftone cell needs the average tone under it, not the one pixel that
- * happens to sit at its centre. Blurring once up front is O(pixels) and turns
- * every centre sample into that average, which is far cheaper than walking each
- * cell's footprint — especially once the screen is rotated and cells no longer
- * line up with the pixel grid.
- */
 function blurredLuminance(image: Bitmap, radius: number): Float32Array {
   const { width, height, data } = image
   const source = new Float32Array(width * height)
@@ -63,26 +54,11 @@ function blurredLuminance(image: Bitmap, radius: number): Float32Array {
 export interface HalftoneOptions {
   palette: RGB[]
   cellSize: number
-  /** Screen angle in degrees. 45 is the classic single-color newsprint angle. */
   angle: number
   shape: HalftoneShape
-  /** Horizontal stretch of a cell. 1 is round. */
   cellAspect: number
 }
 
-/**
- * The size parameter for a shape at a given ink coverage, in cell units.
- *
- * Sized by area, so a circle, square and diamond at the same coverage lay down
- * the same amount of ink and the shapes stay comparable.
- *
- * Squares and bars tile a cell exactly, but a circle or diamond sized purely by
- * area leaves the cell corners bare and tops out around 92% — solid black would
- * never actually go solid. Past the point where the shape first touches the
- * cell edge, the size instead ramps to whatever reaches the corners, so full
- * coverage really is full. Only the top slice of the range is approximate;
- * everything below it stays area-exact.
- */
 function extent(shape: HalftoneShape, coverage: number, cell: number): number {
   switch (shape) {
     case "circle": {
@@ -117,18 +93,6 @@ function covered(shape: HalftoneShape, du: number, dv: number, size: number): bo
   }
 }
 
-/**
- * Analytic clustered-dot halftone.
- *
- * Rather than drawing dots onto a canvas, every output pixel works out which
- * rotated cell it falls in, how dark that cell is, and whether it lands inside
- * the shape. That keeps it O(pixels) and lets the screen rotate to any angle
- * without redrawing anything.
- *
- * Tone is carried by the palette sorted into a luminance ramp: each cell dots
- * between the two levels that bracket it, so a four-level palette halftones
- * across all four rather than collapsing to its extremes.
- */
 export function halftone(image: Bitmap, options: HalftoneOptions): Bitmap {
   const { width, height, data } = image
   const { palette, shape, angle } = options
@@ -166,14 +130,12 @@ export function halftone(image: Bitmap, options: HalftoneOptions): Bitmap {
     for (let x = 0; x < width; x++) {
       const px = x - halfWidth
 
-      // Into screen space, where cells are axis-aligned.
       const u = px * cos + py * sin
       const v = -px * sin + py * cos
 
       const centreU = (Math.floor(u / cellWidth) + 0.5) * cellWidth
       const centreV = (Math.floor(v / cell) + 0.5) * cell
 
-      // Back out to image space to read the cell's tone.
       const sampleX = clamp(Math.round(centreU * cos - centreV * sin + halfWidth), width - 1)
       const sampleY = clamp(Math.round(centreU * sin + centreV * cos + halfHeight), height - 1)
       const value = tone[sampleY * width + sampleX]

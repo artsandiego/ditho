@@ -1,18 +1,6 @@
 import { nearestColor } from "./palette"
 import type { Bitmap, DiffusionKernel, RGB } from "./types"
 
-/**
- * Generic error diffusion.
- *
- * Each pixel snaps to its nearest palette entry and the rounding error is
- * pushed into neighbours the scan has not reached yet, weighted by the kernel.
- * Working in Float32 matters: diffused error routinely drives channels outside
- * 0-255, and clamping mid-pass is what turns a dither into flat noise.
- *
- * Serpentine flips the scan direction every other row, mirroring each tap's
- * horizontal offset with it. That breaks up the diagonal streaking that a
- * strictly left-to-right scan leaves across smooth gradients.
- */
 export function diffuse(
   image: Bitmap,
   kernel: DiffusionKernel,

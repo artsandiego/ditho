@@ -1,5 +1,4 @@
 export interface LoadedImage {
-  /** Object URL - the caller owns it and must revoke it on reset. */
   url: string
   element: HTMLImageElement
   width: number
@@ -10,18 +9,6 @@ export interface LoadedImage {
 const ACCEPTED = /^image\//
 const LOAD_TIMEOUT_MS = 20_000
 
-/**
- * Turn a picked File into a decoded image, or throw a message worth showing.
- *
- * Uses load/error rather than `decode()`: a detached image's decode can be
- * deferred indefinitely while the tab is hidden, which would leave the upload
- * stuck on "Reading…" for anyone who switches away mid-drop. The load event
- * fires regardless, and still tells us what we need — a format the browser
- * cannot handle fails rather than loading.
- *
- * The type check alone is not enough: Safari reports HEIC as an image and every
- * other browser then fails to decode it.
- */
 export async function loadImageFile(file: File): Promise<LoadedImage> {
   if (!ACCEPTED.test(file.type)) {
     throw new Error(`${file.name || "That file"} is not an image.`)

@@ -12,9 +12,6 @@ import {
 
 describe("isStableOverTime", () => {
   it("rejects every error-diffusion method", () => {
-    // Their output at any pixel depends on error accumulated from everything
-    // before it, so a trivial change reshuffles the whole pattern — which reads
-    // as the dots boiling once the frames are played in sequence.
     for (const method of METHODS.filter((m) => m.family === "diffusion")) {
       expect(isStableOverTime(method.id), method.id).toBe(false)
     }
@@ -27,7 +24,6 @@ describe("isStableOverTime", () => {
   })
 
   it("does not treat an unknown id as safe", () => {
-    // Unknown ids fall back to the first method, which is error diffusion.
     expect(isStableOverTime("no-such-method")).toBe(false)
   })
 })
@@ -58,9 +54,6 @@ describe("videoMethods", () => {
 
 describe("suitsRichPalette", () => {
   it("rejects every error-diffusion method", () => {
-    // Diffusion pays off its rounding error in neighbouring pixels, which needs
-    // a palette dense enough to settle the debt nearby. A few colors read off a
-    // photograph are not, so the error travels and the picture muddies.
     for (const method of METHODS.filter((m) => m.family === "diffusion")) {
       expect(suitsRichPalette(method.id), method.id).toBe(false)
     }
@@ -73,7 +66,6 @@ describe("suitsRichPalette", () => {
   })
 
   it("does not treat an unknown id as suitable", () => {
-    // Unknown ids fall back to the first method, which is error diffusion.
     expect(suitsRichPalette("no-such-method")).toBe(false)
   })
 })
@@ -85,9 +77,6 @@ describe("DEFAULT_PALETTE_METHOD_ID", () => {
   })
 
   it("is also safe on video, so switching palettes cannot strand a clip", () => {
-    // The two rules are separate claims, and the image default has to satisfy
-    // both — a video whose colors came off its own still frame still needs a
-    // method that holds still between frames.
     expect(isStableOverTime(DEFAULT_PALETTE_METHOD_ID)).toBe(true)
   })
 })

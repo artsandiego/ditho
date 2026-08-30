@@ -2,16 +2,9 @@ export interface OrderedMatrix {
   id: string
   name: string
   size: number
-  /** Row-major thresholds normalised to [0, 1). */
   values: number[]
 }
 
-/**
- * Bayer matrices are built by recursion: each level quadruples the previous one
- * and offsets the quadrants by 0, 2, 3, 1. That ordering is what spreads the
- * thresholds as evenly as possible, giving the even crosshatch rather than
- * clumps.
- */
 function bayer(order: number): number[][] {
   let matrix = [[0]]
 
@@ -48,7 +41,6 @@ const normalise = (id: string, name: string, grid: number[][]): OrderedMatrix =>
   }
 }
 
-/** Classic clustered-dot screen: thresholds spiral out from the cell centre. */
 const CLUSTERED = [
   [12, 5, 6, 13],
   [4, 0, 1, 7],
@@ -67,7 +59,6 @@ const DIAGONAL = Array.from({ length: 8 }, (_, y) =>
   Array.from({ length: 8 }, (_, x) => [0, 8, 16, 24, 32, 40, 48, 56][(x + y) % 8]),
 )
 
-/** Deterministic white noise — seeded so the pattern never shifts between runs. */
 const NOISE = (() => {
   let seed = 0x2f6e2b1
   const size = 16

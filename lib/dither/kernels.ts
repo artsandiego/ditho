@@ -2,13 +2,6 @@ import type { DiffusionKernel } from "./types"
 
 const tap = (dx: number, dy: number, weight: number) => ({ dx, dy, weight })
 
-/**
- * Error-diffusion kernels, each listing only the neighbours ahead of the scan.
- *
- * Atkinson is the odd one: its taps sum to 6 but it divides by 8, so a quarter
- * of the error is thrown away. That loss is exactly why it holds highlights and
- * shadows instead of muddying them, and it is not a typo.
- */
 export const KERNELS: Record<string, DiffusionKernel> = {
   "floyd-steinberg": {
     divisor: 16,

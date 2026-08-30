@@ -43,9 +43,6 @@ describe("Bayer matrices", () => {
 
 describe("ordered", () => {
   it("renders a flat mid-grey as an even checkerboard under Bayer 2x2", () => {
-    // 127, not 128: true mid-grey between 0 and 255 is 127.5, and Bayer 2x2
-    // only offers four threshold steps, so half a level either way visibly
-    // tips the balance.
     const out = luma(ordered(flat(4, 4, 127), getMatrix("bayer-2"), MONO, 1))
 
     expect(out.filter((v) => v === 255).length).toBe(8)

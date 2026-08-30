@@ -10,7 +10,6 @@ export interface ToneSectionProps {
   onChange: (next: DitherSettings) => void
 }
 
-/** The tone driven into the dither, before any color is chosen. */
 export function ToneSection({ settings, onChange }: ToneSectionProps) {
   const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
 

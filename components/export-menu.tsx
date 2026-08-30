@@ -20,14 +20,12 @@ import { saveBlob, FORMATS, type ExportFormat } from "@/lib/image/export"
 
 interface ExportMenuProps {
   settings: DitherSettings
-  /** MP4 is the only output for a clip, so the still formats are hidden. */
   forVideo: boolean
   disabled: boolean
   onExport: (format: ExportFormat) => void
   onExportVideo: () => void
 }
 
-/** A line of explanation under a menu item, for the two that need one. */
 function Hint({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[10px] leading-snug text-muted-foreground">{children}</span>
@@ -44,8 +42,6 @@ export function ExportMenu({
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clears itself, and on unmount, so a menu closed mid-countdown leaves no
-  // timer running against a component that is gone.
   useEffect(() => {
     if (!copied) return
     timer.current = setTimeout(() => setCopied(false), 2500)
@@ -59,14 +55,6 @@ export function ExportMenu({
     saveBlob(blob, presetFilename(settings))
   }
 
-  /**
-   * The share sheet on a phone, the clipboard on a desktop.
-   *
-   * `navigator.share` exists on a Mac too, where it opens the system sheet —
-   * a heavy answer to "give me the link" when the pointer is a mouse and the
-   * clipboard is one keystroke from being pasted. Touch is where a share sheet
-   * earns itself, so that is where it is used.
-   */
   const sharePreset = async () => {
     const link = presetLink(window.location.origin, settings)
     const touch =
@@ -102,7 +90,6 @@ export function ExportMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Export as:</DropdownMenuLabel>
 
-        {/* Side by side: they are one choice with two answers, not a list. */}
         <div className="flex gap-1">
           {forVideo ? (
             <DropdownMenuItem
@@ -142,7 +129,6 @@ export function ExportMenu({
 
         <DropdownMenuItem
           onSelect={(event) => {
-            // Radix closes on select; the confirmation is in here, so it stays.
             event.preventDefault()
             sharePreset()
           }}
@@ -164,7 +150,6 @@ export function ExportMenu({
           )}
         </DropdownMenuItem>
 
-        {/* Desktop keeps this in the left panel, which does not exist here. */}
         <div className="xl:hidden">
           <DropdownMenuSeparator />
           <div className="p-1">

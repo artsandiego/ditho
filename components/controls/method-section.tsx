@@ -24,11 +24,9 @@ const SHAPES: ChoiceOption<HalftoneShape>[] = [
 export interface MethodSectionProps {
   settings: DitherSettings
   onChange: (next: DitherSettings) => void
-  /** Video only offers the methods whose pattern holds still between frames. */
   forVideo?: boolean
 }
 
-/** Which algorithm, and the options that only that family understands. */
 export function MethodSection({
   settings,
   onChange,

@@ -1,13 +1,5 @@
 import type { Bitmap } from "./types"
 
-/**
- * Build a 256-entry tone curve once and read it per channel.
- *
- * Brightness and contrast are the two knobs that decide which regions land on
- * either side of a palette boundary, so they get adjusted before dithering
- * rather than after. Doing it through a lookup table keeps the per-pixel cost
- * to three array reads.
- */
 export function toneCurve(
   brightness: number,
   contrast: number,

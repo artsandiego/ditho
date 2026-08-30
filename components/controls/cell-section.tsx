@@ -10,13 +10,6 @@ export interface CellSectionProps {
   resolution: { width: number; height: number } | null
 }
 
-/**
- * The size and shape of one cell, and the grid those two produce.
- *
- * The grid readout lives here rather than floating loose after the group: it is
- * the arithmetic result of the two dials above it, and reads as nonsense
- * anywhere else.
- */
 export function CellSection({ settings, onChange, resolution }: CellSectionProps) {
   const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
   const family = getMethod(settings.methodId).family

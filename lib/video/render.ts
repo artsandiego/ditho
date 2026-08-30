@@ -14,12 +14,10 @@ import { exportScales } from "@/lib/image/scale"
 
 import { videoBitrate } from "./bitrate"
 
-/** Long edge of the exported video. Beyond this, encoding turns slow for no visible gain. */
 const TARGET_EDGE = 1920
 
 export interface RenderProgress {
   frames: number
-  /** Estimated total, so this can overshoot slightly on variable-frame-rate video. */
   total: number
 }
 
@@ -27,9 +25,7 @@ export interface RenderOptions {
   input: Input
   crop: PixelCrop
   settings: DitherSettings
-  /** Estimated frame count, for progress only. */
   total: number
-  /** From the probe, so the output declares the same rate it read. */
   frameRate: number
   signal?: AbortSignal
   onProgress?: (progress: RenderProgress) => void
@@ -44,16 +40,6 @@ export interface RenderResult {
 
 const even = (value: number) => Math.max(2, Math.floor(value / 2) * 2)
 
-/**
- * Dither every frame of a video and mux the result into a new MP4.
- *
- * Each frame goes through exactly the same path a photograph does — crop, then
- * `renderDither` — so every method, palette and tone setting applies unchanged.
- *
- * Output dimensions are fixed from the first frame. The crop and settings do not
- * change mid-render, so the dither grid is the same size throughout, and an
- * encoder needs constant dimensions regardless.
- */
 export async function renderVideo({
   input,
   crop,
@@ -68,7 +54,6 @@ export async function renderVideo({
 
   const sink = new VideoSampleSink(track)
 
-  /** Everything that can only be sized once the first frame has been dithered. */
   interface Pipe {
     output: Output<Mp4OutputFormat, BufferTarget>
     source: CanvasSource
@@ -81,8 +66,6 @@ export async function renderVideo({
 
   const open = async (image: ImageData, aspect: number): Promise<Pipe> => {
     const scales = exportScales(image.width, image.height, aspect, TARGET_EDGE)
-    // Even dimensions: H.264 chroma is subsampled, and odd sizes are refused
-    // outright by some encoders.
     const width = even(image.width * scales.x)
     const height = even(image.height * scales.y)
 
@@ -110,11 +93,6 @@ export async function renderVideo({
   let pipe: Pipe | null = null
   let frame: HTMLCanvasElement | null = null
   let frames = 0
-  // Presentation timestamps are not guaranteed to start at zero, or even to be
-  // positive — a trimmed clip or an edit list will happily hand back negative
-  // ones, and an encoder refuses those outright. Everything is shifted so the
-  // first frame kept lands on zero, which preserves the spacing between frames
-  // rather than clamping several of them onto the same instant.
   let origin: number | null = null
 
   try {
@@ -127,8 +105,6 @@ export async function renderVideo({
       try {
         origin ??= sample.timestamp
         const timestamp = sample.timestamp - origin
-        // Checked before any drawing, so a frame that ends before the clip
-        // starts costs nothing beyond having been decoded.
         if (timestamp + sample.duration <= 0) continue
 
         if (!frame) frame = createCanvas(sample.displayWidth, sample.displayHeight)
@@ -139,8 +115,6 @@ export async function renderVideo({
         const { image, aspect } = renderDither(cropToCanvas(frame, crop), settings)
         pipe ??= await open(image, aspect)
 
-        // Grid first, then a whole-number blow-up with smoothing off, so cells
-        // stay square and hard-edged rather than being resampled soft.
         pipe.gridCtx.putImageData(image, 0, 0)
         pipe.out.drawImage(pipe.grid, 0, 0, pipe.width, pipe.height)
 

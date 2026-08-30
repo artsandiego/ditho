@@ -1,7 +1,4 @@
 export function createCanvas(width: number, height: number): HTMLCanvasElement {
-  // Math.max(1, NaN) is NaN, which a canvas silently accepts as 0 and only
-  // complains about several draw calls later. Fail here, where the bad number
-  // came from, instead of at some downstream drawImage.
   if (!Number.isFinite(width) || !Number.isFinite(height)) {
     throw new Error(`Canvas needs finite dimensions, got ${width}x${height}.`)
   }
@@ -21,13 +18,6 @@ export function context2d(
   return ctx
 }
 
-/**
- * Downscale by repeated halving rather than one big jump.
- *
- * A single drawImage from 2400px to 75px samples too sparsely and turns fine
- * detail into aliased speckle, which the ditherer then faithfully renders as
- * noise. Halving keeps every source pixel contributing.
- */
 export function downscaleCanvas(
   source: HTMLCanvasElement,
   targetWidth: number,

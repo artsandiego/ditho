@@ -15,7 +15,6 @@ const MONO: RGB[] = [
   [255, 255, 255],
 ]
 
-/** The same weighting the module uses, so ordering claims are checked, not assumed. */
 const luma = ([r, g, b]: RGB) => 0.299 * r + 0.587 * g + 0.114 * b
 
 describe("hexToRgb", () => {
@@ -32,15 +31,12 @@ describe("hexToRgb", () => {
     expect(hexToRgb("#fff")).toEqual([255, 255, 255])
     expect(hexToRgb("#000")).toEqual([0, 0, 0])
     expect(hexToRgb("#f00")).toEqual([255, 0, 0])
-    // #abc is #aabbcc, not #0abc — the doubling is per digit, not a pad.
     expect(hexToRgb("#abc")).toEqual([170, 187, 204])
   })
 })
 
 describe("rgbToHex", () => {
   it("pads channels below 16 to two digits", () => {
-    // Without the pad this yields "#123", which parses back as a shorthand
-    // and turns [1, 2, 3] into [17, 34, 51].
     expect(rgbToHex([1, 2, 3])).toBe("#010203")
     expect(rgbToHex([0, 0, 0])).toBe("#000000")
   })
@@ -55,8 +51,6 @@ describe("rgbToHex", () => {
 })
 
 describe("PALETTES", () => {
-  // Sixty-odd triples typed by hand, where a slip produces a color that is
-  // merely wrong rather than obviously broken.
   it("holds only whole channels inside [0, 255]", () => {
     for (const palette of PALETTES) {
       for (const color of palette.colors) {
@@ -92,8 +86,6 @@ describe("getPalette", () => {
   })
 
   it("falls back to the first palette rather than throwing on an unknown id", () => {
-    // Settings are held in component state and can outlive a renamed palette,
-    // so an id that no longer exists has to degrade rather than crash.
     expect(getPalette("no-such-palette")).toBe(PALETTES[0])
     expect(getPalette("")).toBe(PALETTES[0])
   })
@@ -119,10 +111,6 @@ describe("nearestColor", () => {
   })
 
   it("weights by luminance rather than plain RGB distance", () => {
-    // The whole reason this function is not a Euclidean nearest-neighbour.
-    // Against black, green is nearer in raw RGB terms (40000 vs 65025) while
-    // blue is nearer perceptually (7413 vs 23480), because the eye barely
-    // registers blue. Plain distance picks green here; this must pick blue.
     const green: RGB = [0, 200, 0]
     const blue: RGB = [0, 0, 255]
 
@@ -141,10 +129,6 @@ describe("bracketColors", () => {
   })
 
   it("lands t on exactly 0 or 1 for a pixel sitting on a palette color", () => {
-    // This is the property that stops ordered dithering speckling clean whites
-    // and blacks. Any drift off 0 or 1 here means an extreme can be pushed to
-    // the neighbouring color by the threshold matrix, which is the bug this
-    // function was written to remove.
     for (const palette of PALETTES) {
       for (const color of palette.colors) {
         const [r, g, b] = color
@@ -178,7 +162,6 @@ describe("bracketColors", () => {
   })
 
   it("sits near the midpoint for a pixel halfway between two colors", () => {
-    // 127 against mono: 127 from black, 128 from white.
     expect(bracketColors(MONO, 127, 127, 127).t).toBeCloseTo(0.5, 1)
   })
 

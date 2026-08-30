@@ -34,8 +34,6 @@ describe("exportScales", () => {
   })
 
   it("stretches a non-square grid back toward the source's proportions", () => {
-    // A 100x400 grid standing in for a square photograph: the axes must differ to
-    // undo the cell stretch, not scale together.
     const { x, y } = exportScales(100, 400, 1, 2048)
 
     expect(x).toBeGreaterThan(y)
@@ -56,8 +54,6 @@ describe("exportScales", () => {
   })
 
   it("still corrects the aspect when one step already fills the target", () => {
-    // A grid this wide cannot grow at all, but the axes must still differ or
-    // the output would come out with the wrong proportions entirely.
     const { x, y } = exportScales(1600, 200, 1, 2048)
 
     expect(y).toBeGreaterThan(x)

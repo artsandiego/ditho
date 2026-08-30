@@ -20,14 +20,11 @@ function flat(width: number, height: number, value: number): Bitmap {
   return { data, width, height }
 }
 
-/** Red channel of every pixel, which is the whole story for a grey palette. */
 const luma = (bitmap: Bitmap) =>
   Array.from({ length: bitmap.width * bitmap.height }, (_, p) => bitmap.data[p * 4])
 
 describe("diffuse", () => {
   it("turns a flat mid-grey 2x2 into a checkerboard under Floyd-Steinberg", () => {
-    // Hand-traced: the first pixel rounds up to white and pushes -127 of error
-    // into its neighbours, which is enough to flip both of them to black.
     const out = diffuse(flat(2, 2, 128), KERNELS["floyd-steinberg"], MONO, false)
 
     expect(luma(out)).toEqual([255, 0, 0, 255])
@@ -53,7 +50,6 @@ describe("diffuse", () => {
 
     for (const [id, kernel] of Object.entries(KERNELS)) {
       const source = flat(32, 32, 100)
-      // A little structure so error actually moves around.
       for (let i = 0; i < source.data.length; i += 4) source.data[i] = (i / 4) % 256
 
       const out = diffuse(source, kernel, gray4, false)
@@ -71,9 +67,6 @@ describe("diffuse", () => {
   })
 
   it("throws away a quarter of the error under Atkinson", () => {
-    // Atkinson's taps sum to 6 over a divisor of 8. On a flat field that lost
-    // error means fewer pixels flip, so it comes out lighter than the exact
-    // Floyd-Steinberg rendering of the same grey.
     const source = flat(64, 64, 96)
     const atkinsonWhite = luma(diffuse(source, KERNELS.atkinson, MONO, false)).filter(
       (v) => v === 255,
@@ -86,9 +79,6 @@ describe("diffuse", () => {
   })
 
   it("changes the result when scanning serpentine", () => {
-    // A flat field is the wrong probe here: it checkerboards identically in
-    // either direction. Serpentine only shows itself where error travels, so
-    // this uses the gradient that a left-to-right scan visibly streaks.
     const source = flat(16, 16, 0)
     for (let y = 0; y < 16; y++) {
       for (let x = 0; x < 16; x++) {

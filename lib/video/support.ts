@@ -5,13 +5,6 @@ export interface VideoSupport {
   reason?: string
 }
 
-/**
- * Whether this browser can decode and encode video at all.
- *
- * WebCodecs covers most browsers now, but not all — Firefox on Android is the
- * notable gap. Checked up front so an unsupported browser is told plainly
- * rather than failing somewhere inside a render.
- */
 export function hasWebCodecs(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -21,11 +14,6 @@ export function hasWebCodecs(): boolean {
   )
 }
 
-/**
- * The fuller check. Presence of the API is not the same as being able to encode
- * H.264 — that depends on the platform's codecs — so this asks before promising
- * an MP4.
- */
 export async function checkVideoSupport(): Promise<VideoSupport> {
   if (!hasWebCodecs()) {
     return {

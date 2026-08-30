@@ -37,7 +37,6 @@
   --radius-4xl: calc(var(--radius) * 3.2);
 }
 
-/* Warm paper by day, dark room by night, one safelight accent in both. */
 :root {
   --background: #f6f4ef;
   --foreground: #16130f;
@@ -106,7 +105,6 @@
 }
 
 @layer components {
-  /* Halftone ground: the dither pattern, blown up and dimmed to a texture. */
   .dot-field {
     background-image: radial-gradient(var(--dot) 1px, transparent 1px);
     background-size: 6px 6px;
@@ -131,7 +129,6 @@
     @apply text-[11px] font-medium tabular-nums text-signal;
   }
 
-  /* Slim instrument-panel sliders instead of the default chunky pills. */
   .instrument [data-slot="slider-track"] {
     @apply h-[3px] rounded-full bg-input;
   }
@@ -144,7 +141,6 @@
     @apply size-3.5 rounded-full border-0 bg-signal shadow-none transition-transform;
   }
 
-  /* 4. Section headings, set apart from the rows beneath them. */
   .section-key {
     @apply text-xs font-semibold tracking-tight text-foreground;
   }
@@ -154,7 +150,6 @@
     @apply scale-110 bg-signal ring-0;
   }
 
-  /* A panel lifted off the canvas rather than welded to the window edge. */
   .floating {
     @apply border border-border bg-card/95 shadow-2xl shadow-black/20 backdrop-blur-md dark:shadow-black/60;
   }
@@ -170,27 +165,16 @@
     image-rendering: pixelated;
   }
 
-  /* 24px so the strip is never flush against the bottom of the phone, and more
-     than that where a home indicator needs clearing. `env()` resolves to 0
-     today — the app does not opt into `viewport-fit: cover` — so the floor is
-     what actually applies, and the max() keeps it correct if that ever
-     changes. */
   .dock-safe {
     padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
 
-  /* Sideways, that 24px is 6% of the entire screen height. The strip's buttons
-     already shrink here; its padding does the same, keeping the edge clear
-     without spending height the picture needs more. */
   @media (max-height: 500px) {
     .dock-safe {
       padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
   }
 
-  /* The open tab panel. A fixed height on purpose: the stage takes whatever is
-     left, so a panel that resized between tabs would resize the photograph
-     every time you switched. */
   .dock-panel {
     height: 200px;
     max-height: 38dvh;
@@ -198,10 +182,6 @@
     overscroll-behavior: contain;
   }
 
-  /* A phone held sideways has no height to give. Splitting 375px between the
-     picture and the controls ruins both — measured at 1.5% of the screen for
-     the image — so here the panel floats over the photograph instead of
-     displacing it, the way the crop toolbar already does. */
   @media (max-height: 500px) {
     .dock-panel {
       position: absolute;
@@ -215,10 +195,6 @@
     }
   }
 
-  /* A 14px thumb is the right size to look at and the wrong size to hit. The
-     base slider already expands its hit area by 8px; on touch it goes to the
-     44px minimum. The dot itself never changes, so the pointer case is
-     untouched. */
   @media (pointer: coarse) {
     .instrument [data-slot="slider-thumb"]::after {
       inset: -15px;
@@ -227,7 +203,6 @@
 
 }
 
-/* react-easy-crop, restyled to hairlines. */
 .reactEasyCrop_CropArea {
   border-radius: var(--radius-sm) !important;
   border: 1px solid var(--foreground) !important;

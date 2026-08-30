@@ -38,13 +38,7 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
         dragging ? "border-signal" : "border-border"
       }`}
     >
-      {/* Flush to the top edge and full width. The app's own output as its
-          hero — an ordered dither of a sky, which says what this does more
-          directly than a wordmark over it would. */}
       <div className="relative h-[210px] w-full overflow-hidden sm:h-[248px]">
-        {/* Both are rendered and CSS picks one off the `dark` class, the same
-            way the theme toggle's own icons work. next-themes sets that class
-            before first paint, so neither can flash the wrong sky. */}
         <Image
           src="/assets/cloud-day.jpg"
           alt="Clouds at daytime, rendered as an ordered dither"
@@ -61,16 +55,11 @@ export function UploadDropzone({ onSelect, busy }: UploadDropzoneProps) {
           className="hidden scale-[1.02] object-cover dark:block"
         />
 
-        {/* Sat on the photograph, so it carries its own ground rather than
-            relying on the border and muted ink it uses over a panel. */}
         <ThemeToggle className="absolute right-3 top-3 border-transparent bg-background/70 text-foreground backdrop-blur-sm hover:border-transparent hover:bg-background/90" />
       </div>
 
       <div className="dot-field flex flex-col items-center gap-7 px-8 py-12 sm:px-16">
         <div className="flex flex-col items-center gap-2.5 text-center">
-          {/* The brand sits here rather than in a bar above the card: on the
-              first screen the card is the whole page, so there is nothing for a
-              header to hold. */}
           <div className="flex items-center gap-3">
             <Logo className="size-9" />
             <span className="text-2xl font-bold tracking-tight">Ditho</span>

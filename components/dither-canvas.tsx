@@ -12,29 +12,6 @@ const FIT_ZOOM = 1
 
 const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value))
 
-/**
- * The canvas backing store stays at the dither resolution and CSS does the
- * scaling, so `image-rendering: pixelated` gives a nearest-neighbour blow-up
- * for free. A canvas stretches its bitmap to whatever box it is given, which is
- * also what makes non-square cells work: the grid stops matching the
- * photograph's proportions on purpose, and the box puts them back.
- *
- * The fit is measured directly rather than left to CSS. `aspect-ratio`
- * alongside a definite width cannot shrink that width when `max-height` clamps
- * the height, so the box quietly stretches instead of letterboxing, and
- * `object-fit` is no help either — it fits to the bitmap's own ratio.
- *
- * Zoom is inspection only — it never touches the dither or the export. It runs
- * from a fifth of the fit up to 24x, so the whole frame can be pushed back to
- * judge it as a picture as readily as it can be pulled in to count cells. The
- * view lives in refs and is written straight to the element: panning should not
- * re-render the tree on every pointer move.
- *
- * The view deliberately survives a change of method or cell size, so two
- * settings can be compared at the same magnification. A new crop is a different
- * photograph and gets a fresh view — the caller keys this component on the crop
- * to say so, rather than this component reaching for the reset itself.
- */
 export function DitherCanvas({ result }: { result: DitherResult | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -43,7 +20,6 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
   const aspect = useRef<number | null>(null)
   const drag = useRef<{ id: number; x: number; y: number } | null>(null)
 
-  // Mirrored purely so the readout and the buttons can render.
   const [zoom, setZoom] = useState(1)
   const [panning, setPanning] = useState(false)
 
@@ -117,13 +93,9 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
     const box = boxRef.current
     if (!box) return
 
-    // Attached natively because preventDefault needs a non-passive listener,
-    // and React's synthetic wheel handler is passive.
     const onWheel = (event: WheelEvent) => {
       event.preventDefault()
       const rect = box.getBoundingClientRect()
-      // Trackpad pinch arrives as ctrl+wheel, and line-mode deltas are ~16x
-      // coarser than pixel-mode ones.
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : 1)
       const rate = event.ctrlKey ? 0.01 : 0.0025
       applyZoom(
@@ -135,9 +107,6 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
 
     box.addEventListener("wheel", onWheel, { passive: false })
 
-    // Two listeners because neither alone is enough: a ResizeObserver catches
-    // the panel changing width without the window moving, but stops delivering
-    // while the tab is hidden, and comes back only once it is shown again.
     const observer = new ResizeObserver(layout)
     observer.observe(box)
     window.addEventListener("resize", layout)
@@ -150,8 +119,6 @@ export function DitherCanvas({ result }: { result: DitherResult | null }) {
   }, [layout, applyZoom])
 
   const startPan = (event: React.PointerEvent) => {
-    // Below the fit there is nothing to pan to — the image sits centred with
-    // room to spare on both axes.
     if (view.current.zoom <= FIT_ZOOM || !boxRef.current) return
     boxRef.current.setPointerCapture(event.pointerId)
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY }

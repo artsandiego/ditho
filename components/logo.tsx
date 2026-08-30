@@ -1,13 +1,3 @@
-/**
- * The Ditho mark.
- *
- * Inlined rather than loaded from `public/assets/light.svg` and `dark.svg`,
- * which carry the same four paths with baked-in fills. Drawing it with
- * `currentColor` means one shape serves both themes — no second request, no
- * swap to flash on a theme change, and it inherits hover colour from the button
- * around it. Those two files remain the source the paths came from; if the mark
- * is redrawn, copy the new `d` attributes across.
- */
 export function Logo({ className }: { className?: string }) {
   return (
     <svg

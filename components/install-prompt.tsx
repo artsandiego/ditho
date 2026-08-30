@@ -7,10 +7,6 @@ import { Button } from "@/components/ui/button"
 
 const DISMISSED = "ditho:install-dismissed"
 
-/**
- * Chrome's install event. Not in lib.dom, because it is not standardised — and
- * that is precisely why Android can offer a button and iOS cannot.
- */
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
@@ -18,16 +14,13 @@ interface BeforeInstallPromptEvent extends Event {
 
 type Mode = "none" | "ios" | "prompt"
 
-/** Installed already, whether the browser recorded it or iOS did. */
 function isInstalled(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    // Safari's own flag, and the only way to tell on iOS.
     (window.navigator as Navigator & { standalone?: boolean }).standalone === true
   )
 }
 
-/** iPadOS reports itself as a Mac, so touch points are what separate the two. */
 function isIOS(): boolean {
   const ua = window.navigator.userAgent
   return (
@@ -36,15 +29,6 @@ function isIOS(): boolean {
   )
 }
 
-/**
- * Whether the app can be installed, as an external store.
- *
- * This is browser state, not React state: it depends on the user agent, on
- * whether the app is already installed, and on an event the browser fires when
- * it feels like it. Reading it through `useSyncExternalStore` keeps the server
- * render honest — it always says "none", so there is nothing to mismatch on
- * hydration — and avoids setting state from inside an effect to reach it.
- */
 let mode: Mode = "none"
 let deferred: BeforeInstallPromptEvent | null = null
 let started = false
@@ -65,15 +49,11 @@ function start() {
   if (isInstalled()) return
   try {
     if (window.localStorage.getItem(DISMISSED)) return
-  } catch {
-    // Private browsing can throw on read; not a reason to hide the offer.
-  }
+  } catch {}
 
   if (isIOS()) setMode("ios")
 
   window.addEventListener("beforeinstallprompt", (event) => {
-    // Held back so the offer appears inside the page, rather than as a bar the
-    // browser draws over it.
     event.preventDefault()
     deferred = event as BeforeInstallPromptEvent
     setMode("prompt")
@@ -92,9 +72,7 @@ function dismiss() {
   setMode("none")
   try {
     window.localStorage.setItem(DISMISSED, "1")
-  } catch {
-    // Nothing to do — it simply offers again next time.
-  }
+  } catch {}
 }
 
 async function install() {
@@ -120,16 +98,6 @@ function Step({ n, icon: Icon, children }: { n: number; icon: typeof Share; chil
   )
 }
 
-/**
- * Offers to put Ditho on the home screen, where it opens without browser chrome.
- *
- * Two different things behind one banner, because the platforms genuinely
- * differ. Android fires `beforeinstallprompt`, which can be kept and replayed
- * from a button, so there it is one tap. Safari implements no such event, and
- * `navigator.share()` opens the sheet for *sending* a link — "Add to Home
- * Screen" lives in Safari's own toolbar, which a page cannot open. So on iOS the
- * honest thing is to show where that button is rather than pretend to press it.
- */
 export function InstallPrompt() {
   const current = useSyncExternalStore(subscribe, () => mode, () => "none" as Mode)
   const [showSteps, setShowSteps] = useState(false)

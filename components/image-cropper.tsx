@@ -11,7 +11,6 @@ export interface CropState {
   crop: Point
   zoom: number
   aspect: number
-  /** Null until react-easy-crop reports the first crop. */
   area: Area | null
 }
 
@@ -52,8 +51,6 @@ export function ImageCropper({
 }: ImageCropperProps) {
   const original = image.width / image.height
   const presets = [{ label: "Original", value: original }, ...PRESETS]
-  // Original frequently *is* one of the presets, so match once rather than
-  // lighting up two chips for the same ratio.
   const activeRatio = presets.findIndex(
     (preset) => Math.abs(preset.value - value.aspect) < 0.001,
   )
@@ -76,8 +73,6 @@ export function ImageCropper({
         />
       </div>
 
-      {/* A toolbar over the canvas rather than a bar under it. Full width on a
-          phone, centred and hugging its content once there is room. */}
       <div className="instrument floating absolute inset-x-4 bottom-4 flex flex-col gap-4 rounded-2xl px-4 py-3.5 sm:px-5 lg:inset-x-auto lg:bottom-6 lg:left-1/2 lg:w-auto lg:-translate-x-1/2 lg:flex-row lg:items-center lg:gap-8">
         <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <span className="label-key mr-1 shrink-0">Ratio</span>

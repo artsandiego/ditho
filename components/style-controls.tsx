@@ -11,12 +11,6 @@ interface StyleControlsProps {
   onChange: (next: DitherSettings) => void
 }
 
-/**
- * How the dither looks, as the desktop panel stacks it.
- *
- * The groups themselves live in `controls/` because the tab bar shows the same
- * ones one at a time. This is only the arrangement.
- */
 export function StyleControls({ settings, onChange }: StyleControlsProps) {
   return (
     <div className="instrument flex flex-col">

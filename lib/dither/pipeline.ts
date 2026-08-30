@@ -10,16 +10,11 @@ export type ColorMode = "duotone" | "palette" | "image"
 
 export interface DitherSettings {
   methodId: string
-  /** Threshold matrix for the ordered method. */
   matrixId: string
-  /** 1 = finest grain, 16 = chunky. Divides the dither grid resolution. */
   pixelSize: number
-  /** Horizontal stretch of a cell. 1 is square. */
   cellAspect: number
-  /** How hard the ordered threshold matrix is applied. */
   patternStrength: number
   shape: HalftoneShape
-  /** Halftone screen angle, degrees. */
   angle: number
   serpentine: boolean
   brightness: number
@@ -29,16 +24,8 @@ export interface DitherSettings {
   ink: string
   paper: string
   paletteId: string
-  /** Hex colors used when `paletteId` is "custom". */
   customColors: string[]
-  /**
-   * Hex colors read back off the photograph, used when `colorMode` is "image".
-   *
-   * Derived rather than chosen, so it is refilled whenever the crop or the
-   * count changes and never edited by hand.
-   */
   imageColors: string[]
-  /** How many colors to pull out of the photograph. */
   imageColorCount: number
 }
 
@@ -69,26 +56,13 @@ export const DEFAULT_SETTINGS: DitherSettings = {
   imageColorCount: DEFAULT_IMAGE_COLORS,
 }
 
-/** Longest edge of the dither grid at pixelSize 1. */
 export const BASE_DITHER_EDGE = 1200
 
 export interface DitherResult {
   image: ImageData
-  /**
-   * Display aspect ratio. Once cells stop being square the grid no longer
-   * matches the photograph's proportions, and the canvas has to be stretched
-   * back rather than shown at its own.
-   */
   aspect: number
 }
 
-/**
- * The grid the dither actually runs on.
- *
- * This is the whole trick: dithering a 2400px photo at full resolution makes a
- * pattern too fine to see and the result just reads as grey. We dither small
- * and let the canvas scale back up with nearest-neighbour.
- */
 export function ditherResolution(
   width: number,
   height: number,
@@ -117,15 +91,12 @@ export function resolvePalette(settings: DitherSettings): RGB[] {
   }
 
   if (settings.colorMode === "image") {
-    // Empty until a photograph has been read, and short of two entries on a
-    // frame with no distinguishable colors in it — a blank white upload, say.
     return settings.imageColors.length >= MIN_IMAGE_COLORS
       ? settings.imageColors.map(hexToRgb)
       : FALLBACK
   }
 
   if (settings.paletteId === CUSTOM_PALETTE_ID) {
-    // Every kernel assumes at least two entries to choose between.
     return settings.customColors.length >= MIN_CUSTOM_COLORS
       ? settings.customColors.map(hexToRgb)
       : FALLBACK
@@ -134,13 +105,6 @@ export function resolvePalette(settings: DitherSettings): RGB[] {
   return getPalette(settings.paletteId).colors
 }
 
-/**
- * Cropped canvas in, dithered `ImageData` out. Synchronous and side-effect free.
- *
- * Halftone is the exception to the downscale rule: its cells need several
- * pixels each to draw a dot into, so it renders on the full-resolution grid and
- * spends the pixel-size control on cell size instead.
- */
 export function renderDither(
   source: HTMLCanvasElement,
   settings: DitherSettings,
@@ -172,8 +136,6 @@ export function renderDither(
     cellAspect: settings.cellAspect,
   })
 
-  // Copied in rather than wrapped: ImageData insists on a plain ArrayBuffer,
-  // while the kernels hand back whatever buffer they allocated.
   const image = new ImageData(result.width, result.height)
   image.data.set(result.data)
 

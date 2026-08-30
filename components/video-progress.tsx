@@ -10,11 +10,6 @@ interface VideoProgressProps {
   onCancel: () => void
 }
 
-/**
- * Shown over the stage while a render runs. The estimate can overshoot on
- * variable-frame-rate video, so the bar is clamped and the count is stated
- * plainly rather than dressed up as a precise percentage.
- */
 export function VideoProgress({ frames, total, onCancel }: VideoProgressProps) {
   const share = Math.min(1, total > 0 ? frames / total : 0)
 

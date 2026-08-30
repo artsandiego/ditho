@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest"
 
 import { videoBitrate } from "./bitrate"
 
-// The rates real cameras and editors actually produce. Only the whole ones
-// divide evenly, which is what made this bug survive its first round of testing.
 const RATES = [23.976, 24, 25, 29.97, 30, 47.952, 50, 59.94, 60, 119.88]
 
 describe("videoBitrate", () => {

@@ -1,18 +1,5 @@
-/** Smoothstep, so the lattice reads as soft blotches rather than diamonds. */
 const ease = (t: number) => t * t * (3 - 2 * t)
 
-/**
- * Deterministic value noise: random values on a coarse lattice, smoothly
- * interpolated between.
- *
- * Per-pixel randomness would be the obvious thing and the wrong one — dithered,
- * it comes out as even static with no structure to it. Interpolating a lattice
- * gives low-frequency variation instead, so the texture drifts between bare and
- * speckled the way a paper grain does.
- *
- * Seeded rather than `Math.random`, so a given seed always gives the same
- * grain and the texture never crawls between frames.
- */
 export function valueNoise(
   width: number,
   height: number,
@@ -26,7 +13,6 @@ export function valueNoise(
   const lattice = new Float32Array(columns * rows)
   let state = seed >>> 0
   for (let i = 0; i < lattice.length; i++) {
-    // xorshift32: cheap, and good enough for a grain.
     state ^= state << 13
     state ^= state >>> 17
     state ^= state << 5

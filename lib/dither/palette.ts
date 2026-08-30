@@ -110,10 +110,6 @@ export function getPalette(id: string): Palette {
   return PALETTES.find((p) => p.id === id) ?? PALETTES[0]
 }
 
-/**
- * Nearest palette entry by luminance-weighted squared distance. Plain Euclidean
- * RGB distance over-weights blue, which shows up as muddy skies.
- */
 export function nearestColor(palette: RGB[], r: number, g: number, b: number): RGB {
   let best = palette[0]
   let bestDistance = Infinity
@@ -135,22 +131,11 @@ export function nearestColor(palette: RGB[], r: number, g: number, b: number): R
 }
 
 export interface Bracket {
-  /** The darker of the two nearest palette entries. */
   dark: RGB
   light: RGB
-  /** 0 when the pixel sits exactly on `dark`, 1 when it sits exactly on `light`. */
   t: number
 }
 
-/**
- * The two palette entries a pixel falls between, and how far along it sits.
- *
- * Ordered dithering needs this rather than a plain nearest-color lookup. The
- * obvious approach — add a centred offset to the pixel then quantise — drags
- * values that already sit exactly on a palette entry off it, which speckles
- * clean whites and blacks. Choosing *between* the two bracketing colors
- * instead leaves t at exactly 0 or 1 there, so the extremes are untouchable.
- */
 export function bracketColors(
   palette: RGB[],
   r: number,

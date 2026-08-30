@@ -69,8 +69,6 @@ describe("halftone", () => {
       [170, 170, 170],
       [255, 255, 255],
     ]
-    // A tone sitting between 85 and 170 must be screened from those two levels,
-    // never from pure black or white.
     const out = halftone(flat(96, 96, 128), { ...base, palette: gray4 })
     const seen = new Set(
       Array.from({ length: 96 * 96 }, (_, p) => out.data[p * 4]),

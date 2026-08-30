@@ -37,7 +37,6 @@ const COLOR_MODES: ChoiceOption<ColorMode>[] = [
   { value: "image", label: "Image" },
 ]
 
-/** The flat strip that previews whichever set of colors is in play. */
 function Swatches({ colors }: { colors: string[] }) {
   return (
     <div className="mx-5 mb-4 flex overflow-hidden rounded-md border border-white/10">
@@ -53,7 +52,6 @@ function Swatches({ colors }: { colors: string[] }) {
   )
 }
 
-/** A color the set does not already contain, so a new chip is visibly new. */
 function nextColor(colors: string[]): string {
   return (
     ["#ffffff", "#000000", "#808080", "#ff3d0f"].find(
@@ -71,15 +69,11 @@ export interface ColorSectionProps {
   onChange: (next: DitherSettings) => void
 }
 
-/** The colors the dither lands on, however they are arrived at. */
 export function ColorSection({ settings, onChange }: ColorSectionProps) {
   const patch = (part: Partial<DitherSettings>) => onChange({ ...settings, ...part })
   const palette = getPalette(settings.paletteId)
   const isCustom = settings.paletteId === CUSTOM_PALETTE_ID
 
-  // Switching to Custom copies the set you were just on, so tweaking an
-  // existing palette does not mean retyping it. Only while the custom colors
-  // are still untouched — once edited, they are yours and never overwritten.
   const selectPalette = (paletteId: string) => {
     if (
       paletteId === CUSTOM_PALETTE_ID &&
@@ -195,10 +189,6 @@ export function ColorSection({ settings, onChange }: ColorSectionProps) {
                             ),
                           })
                         }
-                        // Revealed on hover where there is a pointer to hover
-                        // with, and always visible where there is not. Gating it
-                        // on hover alone left custom colours impossible to
-                        // remove on a touch screen at all.
                         className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full border border-border bg-background text-[9px] leading-none text-muted-foreground hover:border-signal hover:text-signal [@media(hover:hover)]:hidden [@media(hover:hover)]:group-hover:flex"
                       >
                         ×

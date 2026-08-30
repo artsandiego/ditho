@@ -15,7 +15,6 @@ import {
   PRESET_VERSION,
 } from "./preset"
 
-/** A settings object that differs from the defaults in every carried field. */
 const TUNED: DitherSettings = {
   ...DEFAULT_SETTINGS,
   methodId: "halftone",
@@ -48,8 +47,6 @@ describe("toPreset", () => {
   })
 
   it("never carries the colors read off the image", () => {
-    // They belong to the photograph that was open, not to the look. Baking them
-    // in would paint the next picture in colors it does not contain.
     expect(toPreset(TUNED).settings).not.toHaveProperty("imageColors")
   })
 
@@ -72,7 +69,6 @@ describe("fromPreset", () => {
   })
 
   it("fills anything the preset omits from the defaults", () => {
-    // What lets a preset saved today survive a setting added tomorrow.
     const back = fromPreset({ version: 1, settings: { methodId: "ordered" } })
 
     expect(back.methodId).toBe("ordered")
@@ -186,8 +182,6 @@ describe("links", () => {
   })
 
   it("encodes to characters that survive being pasted into a chat", () => {
-    // base64url only: +, / and = are what break when a link is written into a
-    // sentence or wrapped by a mail client.
     expect(encodePreset(TUNED)).toMatch(/^[A-Za-z0-9_-]+$/)
   })
 
@@ -204,7 +198,6 @@ describe("links", () => {
   })
 
   it("returns null for a corrupted preset rather than throwing", () => {
-    // A link that lost characters on the way through a chat app.
     expect(decodePreset("!!!not-base64!!!")).toBeNull()
     expect(presetFromLocation("?p=zzzz")).toBeNull()
   })

@@ -1,16 +1,5 @@
 import type { MetadataRoute } from "next"
 
-/**
- * What a phone reads when it installs the app.
- *
- * `display: "standalone"` is the point of the whole exercise: launched from the
- * home screen there is no address bar and no browser chrome, which on a phone is
- * roughly 100px of vertical space handed back to the photograph.
- *
- * Icons are declared `purpose: "any"` rather than `"maskable"`. The mark has
- * generous padding but its corners still fall outside the 80% safe circle a
- * maskable icon is cropped to, so claiming maskable would let Android clip them.
- */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Ditho — dithering, in your browser",

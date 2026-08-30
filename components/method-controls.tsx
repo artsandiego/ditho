@@ -10,16 +10,9 @@ interface MethodControlsProps {
   settings: DitherSettings
   onChange: (next: DitherSettings) => void
   resolution: { width: number; height: number } | null
-  /** Video only offers the methods whose pattern holds still between frames. */
   forVideo?: boolean
 }
 
-/**
- * How the dither is computed, as the desktop panel stacks it.
- *
- * The groups themselves live in `controls/` because the tab bar shows the same
- * ones one at a time. This is only the arrangement.
- */
 export function MethodControls({
   settings,
   onChange,

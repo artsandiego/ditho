@@ -4,18 +4,10 @@ export const MIN_IMAGE_COLORS = 2
 export const MAX_IMAGE_COLORS = 12
 export const DEFAULT_IMAGE_COLORS = 6
 
-/**
- * Pixels read at most, spread evenly across the frame.
- *
- * Color extraction does not get better with more samples — a few thousand
- * already describe the distribution — and reading every pixel of a 24-megapixel
- * photograph costs far more than the answer is worth.
- */
 const SAMPLE_BUDGET = 24_000
 
 const luma = ([r, g, b]: RGB) => 0.299 * r + 0.587 * g + 0.114 * b
 
-/** Evenly strided samples, skipping anything close to transparent. */
 function sample(image: Bitmap): RGB[] {
   const total = image.width * image.height
   if (total <= 0) return []
@@ -32,7 +24,6 @@ function sample(image: Bitmap): RGB[] {
   return out
 }
 
-/** The channel this group of pixels varies most along, and by how much. */
 function widestChannel(box: RGB[]): { channel: number; range: number } {
   const low: [number, number, number] = [255, 255, 255]
   const high: [number, number, number] = [0, 0, 0]
@@ -71,21 +62,6 @@ function average(box: RGB[]): RGB {
   return [Math.round(r / box.length), Math.round(g / box.length), Math.round(b / box.length)]
 }
 
-/**
- * The photograph's own colors, reduced to a palette by median cut.
- *
- * Median cut repeatedly takes whichever group of pixels spans the widest range
- * on any one channel and splits it at that channel's median. Splitting at the
- * median rather than the midpoint is what makes it hold up on real photographs:
- * a frame that is four fifths sky still gets its remaining fifth divided, where
- * splitting the range in half would keep carving up the sky.
- *
- * No color is invented. A picture with no true black in it produces a palette
- * with no true black, which is the point — the tone controls are there to open
- * the range back up if the result reads flat.
- *
- * Deterministic for a given image and count, so it can be tested directly.
- */
 export function extractPalette(image: Bitmap, count: number): RGB[] {
   const wanted = Math.max(
     MIN_IMAGE_COLORS,
@@ -113,10 +89,6 @@ export function extractPalette(image: Bitmap, count: number): RGB[] {
       }
     }
 
-    // Every remaining group is a single pixel or one flat color: the image
-    // does not hold `wanted` distinguishable colors, and padding it out with
-    // duplicates would only give the kernels two identical entries to choose
-    // between.
     if (target === -1) break
 
     const box = boxes[target].slice().sort((a, b) => a[channel] - b[channel])
@@ -137,8 +109,5 @@ export function extractPalette(image: Bitmap, count: number): RGB[] {
     colors.push(color)
   }
 
-  // Dark to light. Ordered dithering brackets a pixel between two entries, so a
-  // palette that climbs in tone is far easier to reason about than one in the
-  // order the splits happened to land.
   return colors.sort((a, b) => luma(a) - luma(b))
 }

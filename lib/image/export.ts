@@ -1,15 +1,8 @@
 import { context2d, createCanvas } from "./canvas"
 import { exportScales } from "./scale"
 
-/** Roughly the longest edge we aim for in an exported file. */
 const EXPORT_TARGET_EDGE = 2048
 
-/**
- * High, deliberately. JPEG was built for photographs, and a dither is the
- * opposite of one: hard black-and-white edges everywhere are exactly what its
- * frequency transform handles worst, so anything lower rings visibly around
- * every cell.
- */
 const JPEG_QUALITY = 0.95
 
 export type ExportFormat = "png" | "jpeg"
@@ -21,15 +14,6 @@ export const FORMATS: { id: ExportFormat; label: string; extension: string }[] =
 
 const formatOf = (format: ExportFormat) => FORMATS.find((f) => f.id === format) ?? FORMATS[0]
 
-/**
- * Whole-number upscaling with smoothing off, so exported pixels stay square and
- * the file matches what is on screen instead of a blurred version of it.
- *
- * The two axes scale independently: once cells are non-square the dither grid
- * no longer carries the photograph's proportions, and the export has to stretch
- * it back the same way the on-screen canvas does. Both factors stay integers,
- * which is what keeps the edges hard.
- */
 export function toExportCanvas(image: ImageData, aspect: number): HTMLCanvasElement {
   const base = createCanvas(image.width, image.height)
   context2d(base).putImageData(image, 0, 0)
@@ -61,9 +45,6 @@ export async function downloadImage(
 ): Promise<void> {
   const canvas = toExportCanvas(image, aspect)
 
-  // JPEG has no alpha and composites transparency onto black, which would turn
-  // paper into ink. The dither is opaque, but flattening onto white keeps that
-  // true regardless of what the source carried.
   if (format === "jpeg") {
     const ctx = context2d(canvas)
     ctx.globalCompositeOperation = "destination-over"
@@ -80,13 +61,6 @@ export async function downloadImage(
   saveBlob(blob, filename)
 }
 
-/**
- * Hand a blob to the browser as a download.
- *
- * Firefox ignores clicks on detached anchors, and revoking the URL in the same
- * tick can cancel the download before the browser has read the blob — hence the
- * append and the delayed revoke.
- */
 export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")

@@ -46,13 +46,6 @@ import { checkVideoSupport } from "@/lib/video/support"
 
 type Stage = "upload" | "crop" | "edit"
 
-/**
- * The photograph's own colors, read off a small copy of the crop.
- *
- * A few hundred pixels describe the color distribution as well as several
- * million, and reading a full 24-megapixel frame would allocate tens of
- * megabytes to answer the same question.
- */
 function readImageColors(canvas: HTMLCanvasElement, count: number): string[] {
   const longest = Math.max(canvas.width, canvas.height)
   const scale = Math.min(1, 256 / longest)
@@ -61,13 +54,6 @@ function readImageColors(canvas: HTMLCanvasElement, count: number): string[] {
   return extractPalette(readImageData(small), count).map(rgbToHex)
 }
 
-/**
- * A floating card either side, once there is room for one.
- *
- * Desktop only: below `xl` the same controls are in the bottom tab bar, so
- * these are hidden outright rather than stacked under the image. Nothing is
- * rendered twice — the tab bar is the only copy on a phone or tablet.
- */
 function Panel({ side, children }: { side: "left" | "right"; children: ReactNode }) {
   return (
     <aside
@@ -85,48 +71,24 @@ export default function Home() {
   const [source, setSource] = useState<LoadedImage | null>(null)
   const [cropState, setCropState] = useState<CropState | null>(null)
   const [cropped, setCropped] = useState<HTMLCanvasElement | null>(null)
-  // Bumped per crop so the preview remounts with a fresh zoom and pan.
   const [cropSerial, setCropSerial] = useState(0)
-  // A shared link carries its preset in the address. Read once, at the first
-  // render, so the settings are in place before a photo is even chosen. The
-  // upload screen shows no controls, so server and client render the same
-  // markup either way and there is nothing to mismatch on hydration.
   const [settings, setSettings] = useState<DitherSettings>(() =>
     typeof window === "undefined"
       ? DEFAULT_SETTINGS
       : (presetFromLocation(window.location.search) ?? DEFAULT_SETTINGS),
   )
   const [busy, setBusy] = useState(false)
-  // Present only for video. The still in `source` is one frame out of it, which
-  // is what every control and the cropper actually operate on.
   const [video, setVideo] = useState<VideoInfo | null>(null)
   const [render, setRender] = useState<{ frames: number; total: number } | null>(null)
-  // Explains that the preview is a single frame. Dismissible, since it has done
-  // its job once read, and re-shown for each new video rather than remembered.
   const [notice, setNotice] = useState(true)
-  // Which group of controls the bottom tab bar is showing, below xl. null is
-  // collapsed, which is a resting state rather than an error. Held here and
-  // not in the tab bar because the edit stage unmounts on a re-frame, which
-  // would otherwise lose the tab the user was on.
   const [tab, setTab] = useState<EditorTab | null>("method")
   const abort = useRef<AbortController | null>(null)
 
   const result = useDitheredImage(cropped, settings)
 
-  // The image palette is derived from the crop, so it is re-read whenever the
-  // crop or the count changes. Doing it on the event rather than in an effect
-  // keeps it out of the render loop: an effect that writes state it also
-  // depends on cascades an extra render every time.
-  //
-  // It is held in settings rather than recomputed per frame because a video
-  // render must dither every frame against one fixed palette — re-reading each
-  // frame would make the colors crawl.
   const changeSettings = (next: DitherSettings) => {
     const patched = { ...next }
 
-    // Arriving on an image palette also moves off error diffusion, which handles
-    // a sparse set of arbitrary colors badly. Only on the way in, so a method
-    // picked deliberately afterwards is left alone.
     if (
       next.colorMode === "image" &&
       settings.colorMode !== "image" &&
@@ -146,15 +108,6 @@ export default function Home() {
     setSettings(patched)
   }
 
-  /**
-   * A preset applied to the picture already open.
-   *
-   * A preset never carries image colors — they belong to whichever photograph
-   * was open when it was saved. So one that asks for image mode arrives with an
-   * empty set, which `resolvePalette` reads as black and white. They have to be
-   * taken off the picture here, or the mode looks broken until some other
-   * control happens to trigger the read.
-   */
   const applyPreset = (next: DitherSettings) => {
     setSettings(
       cropped !== null && next.colorMode === "image"
@@ -163,9 +116,6 @@ export default function Home() {
     )
   }
 
-  // Object URLs outlive the component that made them, so the live one is tracked
-  // here and released whenever it is replaced. The ref is only ever written from
-  // handlers and effects, never during render.
   const liveUrl = useRef<string | null>(null)
   const releaseUrl = () => {
     if (liveUrl.current) URL.revokeObjectURL(liveUrl.current)
@@ -174,8 +124,6 @@ export default function Home() {
   useEffect(() => releaseUrl, [])
 
   const handleSelect = useCallback(async (file: File) => {
-    // A preset arrives the same way a picture does. It is settings, not media,
-    // so it is applied where it lands and the upload screen simply stays put.
     if (file.type === "application/json" || file.name.endsWith(".json")) {
       const loaded = presetFromJson(await file.text())
       if (!loaded) {
@@ -196,17 +144,10 @@ export default function Home() {
         if (!support.supported) throw new Error(support.reason)
       }
 
-      // Video is reduced to a single still here, and everything downstream —
-      // cropper, controls, preview — treats it exactly like a photograph. Only
-      // the export knows the difference.
       const info = isVideo ? await probeVideo(file) : null
-      // A frame from a third of the way in: openings are often black or fading.
       const start = info ? info.duration / 3 : 0
       const loaded = info ? await videoStill(info, start) : await loadImageFile(file)
 
-      // Error diffusion recomputes its pattern every frame, so it boils on
-      // playback. Video is offered only the methods that hold still, and a
-      // choice carried over from a photo is moved to one of them.
       if (info) {
         setNotice(true)
         setSettings((current) =>
@@ -238,8 +179,6 @@ export default function Home() {
 
       setCropped(canvas)
       setCropSerial((serial) => serial + 1)
-      // Re-framing changes which colors are in shot, so the image palette is
-      // read again off the new crop rather than kept from the old one.
       setSettings((current) => ({
         ...current,
         imageColors: readImageColors(canvas, current.imageColorCount),
@@ -264,14 +203,6 @@ export default function Home() {
     setStage("upload")
   }
 
-  /**
-   * Every setting back to its default, keeping the photograph and the crop.
-   *
-   * The defaults name an error-diffusion method, which a video cannot use — its
-   * pattern is recomputed per frame and boils on playback — so a clip resets to
-   * the method video falls back to everywhere else rather than to the global
-   * default.
-   */
   const resetEdits = () => {
     setSettings(
       video && !isStableOverTime(DEFAULT_SETTINGS.methodId)
@@ -280,9 +211,6 @@ export default function Home() {
     )
   }
 
-  // Two entry points rather than one that branches, because the menu already
-  // knows which it is offering: a clip has only MP4, a photograph has the still
-  // formats and never both.
   const exportVideo = async () => {
     if (!video || !cropState?.area) return
 
@@ -329,11 +257,8 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
-      {/* No header on the first screen: the card carries the brand and the
-          theme toggle itself, which would leave this bar holding nothing but
-          its own bottom border. */}
       {stage !== "upload" && (
-      <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-3 sm:gap-4 sm:px-5">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-5">
         <button
           type="button"
           onClick={reset}
@@ -363,9 +288,6 @@ export default function Home() {
 
       {stage === "upload" && (
         <main className="flex flex-1 flex-col overflow-y-auto px-5 py-10">
-          {/* Only on the upload stage, and only below xl. The edit stage spends
-              every pixel it has on the photograph, and a banner there would take
-              some of it straight back. */}
           <div className="mx-auto w-full max-w-md shrink-0">
             <InstallPrompt />
           </div>
@@ -395,11 +317,7 @@ export default function Home() {
 
       {stage === "edit" && (
         <main className="relative flex min-h-0 flex-1 flex-col xl:block xl:overflow-hidden">
-          {/* The stage runs full bleed and the panels float over it, so its side
-              insets have to clear them rather than sit between them. */}
           <section className="dot-field relative min-h-0 flex-1 xl:absolute xl:inset-0">
-            {/* Insets rather than padding: the canvas sizes off this box, and a
-                padded box would make 100% height overflow it. */}
             <div className="absolute inset-5 xl:inset-y-8 xl:left-[372px] xl:right-[372px]">
               <DitherCanvas key={cropSerial} result={result} />
             </div>
@@ -432,8 +350,6 @@ export default function Home() {
             )}
           </section>
 
-          {/* Sits after the stage in the flex column, so it takes its height
-              from the layout rather than overlaying the photograph. */}
           <EditorTabs
             settings={settings}
             onChange={setSettings}
@@ -450,8 +366,6 @@ export default function Home() {
           />
 
           <Panel side="left">
-            {/* Starting over sits above the two that keep the photograph, since
-                it is the one that throws it away. */}
             <div className="flex shrink-0 flex-col gap-2 border-b border-border p-3">
               <Button
                 type="button"
