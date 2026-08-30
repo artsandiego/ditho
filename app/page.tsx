@@ -333,7 +333,7 @@ export default function Home() {
           theme toggle itself, which would leave this bar holding nothing but
           its own bottom border. */}
       {stage !== "upload" && (
-      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-5">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-3 sm:gap-4 sm:px-5">
         <button
           type="button"
           onClick={reset}

@@ -1,3 +1,4 @@
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata, Viewport } from "next"
 import { Geist } from "next/font/google"
 
@@ -96,6 +97,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <Toaster position="bottom-right" />
         </ThemeProvider>
+
+        {/* Core Web Vitals as real devices actually experience them. Worth having
+            on this app in particular: all the work happens on the phone doing the
+            looking, so the only honest numbers come from there. Reports nothing
+            in development. */}
+        <SpeedInsights />
       </body>
     </html>
   )

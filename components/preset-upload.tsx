@@ -52,7 +52,7 @@ export function PresetUpload({
             <FileUp className="size-3.5" strokeWidth={1.75} />
             {/* Shortened rather than dropped on a narrow header: an icon alone
                 is a guess, and "Preset" beside an upload arrow is not. */}
-            <span className="sm:hidden">Upload Preset</span>
+            <span className="sm:hidden">Preset</span>
             <span className="hidden sm:inline">Upload Preset</span>
           </Button>
         </TooltipTrigger>
