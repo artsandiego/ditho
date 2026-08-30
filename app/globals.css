@@ -169,6 +169,52 @@
   .pixelated {
     image-rendering: pixelated;
   }
+
+  /* Clears the home indicator where the viewport reaches under it, and falls
+     back to ordinary padding where it does not. `env()` resolves to 0 today —
+     the app does not opt into `viewport-fit: cover` — so the max() is what
+     makes this correct either way. */
+  .dock-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  /* The open tab panel. A fixed height on purpose: the stage takes whatever is
+     left, so a panel that resized between tabs would resize the photograph
+     every time you switched. */
+  .dock-panel {
+    height: 200px;
+    max-height: 38dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* A phone held sideways has no height to give. Splitting 375px between the
+     picture and the controls ruins both — measured at 1.5% of the screen for
+     the image — so here the panel floats over the photograph instead of
+     displacing it, the way the crop toolbar already does. */
+  @media (max-height: 500px) {
+    .dock-panel {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      max-height: 60dvh;
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+  }
+
+  /* A 14px thumb is the right size to look at and the wrong size to hit. The
+     base slider already expands its hit area by 8px; on touch it goes to the
+     44px minimum. The dot itself never changes, so the pointer case is
+     untouched. */
+  @media (pointer: coarse) {
+    .instrument [data-slot="slider-thumb"]::after {
+      inset: -15px;
+    }
+  }
+
 }
 
 /* react-easy-crop, restyled to hairlines. */

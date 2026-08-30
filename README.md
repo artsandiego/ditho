@@ -82,6 +82,27 @@ Halftone sorts the palette into a luminance ramp and screens each cell between
 the two levels that bracket it, so a four-color set halftones across all four
 rather than collapsing to its extremes.
 
+## Two layouts
+
+Above 1280px the controls are two floating panels either side of the picture.
+Below that — every phone, and every tablet in both orientations — they collapse
+into a horizontally scrolling strip of icons pinned to the bottom, one group open
+at a time, so the picture gets the rest of the screen. The image goes from 29% of
+a phone screen to 46%, and from 12.5% of an iPad in landscape to 36%.
+
+The breakpoint is 1280 rather than 1024 because an iPad in landscape is exactly
+1024 wide: it used to cross into the desktop layout and hand 640 of its 1024
+pixels to two control panels, which made it the worst case in the app rather than
+the best tablet one.
+
+The open panel is a fixed height so that switching tabs never resizes the
+picture, and tapping the open tab again closes it. On a phone held sideways there
+is no height to divide, so there the panel floats over the image instead of
+displacing it.
+
+The groups themselves live in `components/controls/` and are written once. The
+panels stack them; the tab bar shows one. Neither layout owns the controls.
+
 ## Exporting
 
 PNG or JPG, chosen in the header. Both scale the dither grid up by whole-number
@@ -182,8 +203,10 @@ at the same magnification — and resets on a new crop.
 | `lib/video/` | Probing, single frames, the render loop, and the support check |
 | `lib/image/noise.ts` | The value noise the hero's grain is built from |
 | `hooks/use-dithered-image.ts` | Re-renders on change, coalesced to one per frame |
-| `components/method-controls.tsx` | Left panel: how the dither is computed |
-| `components/style-controls.tsx` | Right panel: how it looks |
+| `components/controls/` | The four groups of controls, one file each |
+| `components/method-controls.tsx` | Desktop left panel: Method and Cell, stacked |
+| `components/style-controls.tsx` | Desktop right panel: Tone and Color, stacked |
+| `components/editor-tabs.tsx` | The same four groups as a bottom tab bar, below `xl` |
 
 Every kernel takes a plain `{ data, width, height }` and is free of DOM calls,
 so they run under Node in tests and would move to a Web Worker unchanged.

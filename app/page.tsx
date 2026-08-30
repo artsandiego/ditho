@@ -5,7 +5,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { Credit } from "@/components/credit"
+import type { EditorTab } from "@/components/controls/sections"
 import { DitherCanvas } from "@/components/dither-canvas"
+import { EditorTabs } from "@/components/editor-tabs"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
 import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
@@ -55,12 +57,18 @@ function readImageColors(canvas: HTMLCanvasElement, count: number): string[] {
   return extractPalette(readImageData(small), count).map(rgbToHex)
 }
 
-/** Flush and stacked on a phone; a floating card either side once there is room. */
+/**
+ * A floating card either side, once there is room for one.
+ *
+ * Desktop only: below `xl` the same controls are in the bottom tab bar, so
+ * these are hidden outright rather than stacked under the image. Nothing is
+ * rendered twice — the tab bar is the only copy on a phone or tablet.
+ */
 function Panel({ side, children }: { side: "left" | "right"; children: ReactNode }) {
   return (
     <aside
-      className={`flex shrink-0 flex-col border-t border-border bg-card lg:absolute lg:inset-y-6 lg:w-[320px] lg:overflow-hidden lg:rounded-2xl lg:border lg:bg-card/95 lg:shadow-2xl lg:shadow-black/60 lg:backdrop-blur-md ${
-        side === "left" ? "lg:left-6" : "lg:right-6"
+      className={`absolute inset-y-6 hidden w-[320px] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl shadow-black/60 backdrop-blur-md xl:flex ${
+        side === "left" ? "left-6" : "right-6"
       }`}
     >
       {children}
@@ -87,6 +95,11 @@ export default function Home() {
   // Explains that the preview is a single frame. Dismissible, since it has done
   // its job once read, and re-shown for each new video rather than remembered.
   const [notice, setNotice] = useState(true)
+  // Which group of controls the bottom tab bar is showing, below xl. null is
+  // collapsed, which is a resting state rather than an error. Held here and
+  // not in the tab bar because the edit stage unmounts on a re-frame, which
+  // would otherwise lose the tab the user was on.
+  const [tab, setTab] = useState<EditorTab | null>("method")
   const abort = useRef<AbortController | null>(null)
 
   const result = useDitheredImage(cropped, settings)
@@ -208,6 +221,7 @@ export default function Home() {
     setCropState(null)
     setCropped(null)
     setSettings(DEFAULT_SETTINGS)
+    setTab("method")
     setStage("upload")
   }
 
@@ -328,18 +342,18 @@ export default function Home() {
       )}
 
       {stage === "edit" && (
-        <main className="relative flex flex-1 flex-col overflow-y-auto lg:block lg:overflow-hidden">
+        <main className="relative flex min-h-0 flex-1 flex-col xl:block xl:overflow-hidden">
           {/* The stage runs full bleed and the panels float over it, so its side
               insets have to clear them rather than sit between them. */}
-          <section className="dot-field relative min-h-[46vh] shrink-0 lg:absolute lg:inset-0 lg:min-h-0">
+          <section className="dot-field relative min-h-0 flex-1 xl:absolute xl:inset-0">
             {/* Insets rather than padding: the canvas sizes off this box, and a
                 padded box would make 100% height overflow it. */}
-            <div className="absolute inset-5 lg:inset-y-8 lg:left-[372px] lg:right-[372px]">
+            <div className="absolute inset-5 xl:inset-y-8 xl:left-[372px] xl:right-[372px]">
               <DitherCanvas key={cropSerial} result={result} />
             </div>
 
             {video && notice && (
-              <div className="floating absolute inset-x-5 top-5 flex items-start gap-3 rounded-2xl py-3 pl-4 pr-2 lg:inset-x-auto lg:left-1/2 lg:top-8 lg:w-[460px] lg:-translate-x-1/2">
+              <div className="floating absolute inset-x-5 top-5 flex items-start gap-3 rounded-2xl py-3 pl-4 pr-2 xl:inset-x-auto xl:left-1/2 xl:top-8 xl:w-[460px] xl:-translate-x-1/2">
                 <Film className="mt-0.5 size-4 shrink-0 text-signal" strokeWidth={1.75} />
                 <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
                   <span className="text-foreground">This is a still preview.</span> It shows
@@ -366,6 +380,22 @@ export default function Home() {
             )}
           </section>
 
+          {/* Sits after the stage in the flex column, so it takes its height
+              from the layout rather than overlaying the photograph. */}
+          <EditorTabs
+            settings={settings}
+            onChange={setSettings}
+            onStyleChange={changeSettings}
+            forVideo={video !== null}
+            resolution={
+              result ? { width: result.image.width, height: result.image.height } : null
+            }
+            active={tab}
+            onActivate={setTab}
+            onReframe={() => setStage("crop")}
+            onNewProject={reset}
+          />
+
           <Panel side="left">
             <div className="flex shrink-0 items-center gap-2 border-b border-border p-3">
               <Button
@@ -387,7 +417,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <MethodControls
                 settings={settings}
                 onChange={setSettings}
@@ -404,7 +434,7 @@ export default function Home() {
           </Panel>
 
           <Panel side="right">
-            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <StyleControls settings={settings} onChange={changeSettings} />
             </div>
           </Panel>
