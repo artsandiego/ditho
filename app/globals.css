@@ -170,12 +170,22 @@
     image-rendering: pixelated;
   }
 
-  /* Clears the home indicator where the viewport reaches under it, and falls
-     back to ordinary padding where it does not. `env()` resolves to 0 today —
-     the app does not opt into `viewport-fit: cover` — so the max() is what
-     makes this correct either way. */
+  /* 24px so the strip is never flush against the bottom of the phone, and more
+     than that where a home indicator needs clearing. `env()` resolves to 0
+     today — the app does not opt into `viewport-fit: cover` — so the floor is
+     what actually applies, and the max() keeps it correct if that ever
+     changes. */
   .dock-safe {
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  /* Sideways, that 24px is 6% of the entire screen height. The strip's buttons
+     already shrink here; its padding does the same, keeping the edge clear
+     without spending height the picture needs more. */
+  @media (max-height: 500px) {
+    .dock-safe {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
   }
 
   /* The open tab panel. A fixed height on purpose: the stage takes whatever is
