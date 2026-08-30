@@ -10,6 +10,7 @@ import { DitherCanvas } from "@/components/dither-canvas"
 import { EditorTabs } from "@/components/editor-tabs"
 import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
 import { InstallPrompt } from "@/components/install-prompt"
+import { Logo } from "@/components/logo"
 import { MethodControls } from "@/components/method-controls"
 import { StyleControls } from "@/components/style-controls"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -272,14 +273,19 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
+      {/* No header on the first screen: the card carries the brand and the
+          theme toggle itself, which would leave this bar holding nothing but
+          its own bottom border. */}
+      {stage !== "upload" && (
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-5">
         <button
           type="button"
           onClick={reset}
-          aria-label="DITHO — back to the start"
-          className="text-sm font-semibold tracking-[0.3em] transition-colors hover:text-signal"
+          aria-label="Ditho — back to the start"
+          className="flex items-center gap-2 transition-colors hover:text-signal"
         >
-          DITHO
+          <Logo className="size-4" />
+          <span className="text-base font-bold tracking-tight">Ditho</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -316,6 +322,7 @@ export default function Home() {
           <ThemeToggle />
         </div>
       </header>
+      )}
 
       {stage === "upload" && (
         <main className="flex flex-1 flex-col overflow-y-auto px-5 py-10">

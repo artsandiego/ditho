@@ -43,13 +43,13 @@ export const metadata: Metadata = {
   },
   // Named `Ditho` rather than the full title, which is what sits under the icon
   // on a home screen and is truncated at roughly twelve characters.
-  // `black` rather than `black-translucent`: the translucent bar overlays the
-  // page, and this layout is a fixed-height flex column whose header would end
-  // up under the clock.
+  // `default` for a light app, and deliberately not `black-translucent`: the
+  // translucent bar overlays the page, and this layout is a fixed-height flex
+  // column whose header would end up under the clock.
   appleWebApp: {
     capable: true,
     title: "Ditho",
-    statusBarStyle: "black",
+    statusBarStyle: "default",
   },
   // `capable` above emits the standard `mobile-web-app-capable`, which iOS only
   // began honouring alongside the manifest's `display` in 16.4. The superseded
@@ -79,20 +79,20 @@ export const metadata: Metadata = {
 }
 
 /**
- * Dark outright, matching the manifest, so the browser chrome and the splash
- * screen do not flash white around a dark app on the way in.
+ * Light outright, matching the manifest, so the browser chrome and the splash
+ * screen do not flash dark around a light app on the way in.
  */
 export const viewport: Viewport = {
-  themeColor: "#080807",
+  themeColor: "#f6f4ef",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="grain relative flex min-h-full flex-col bg-background">
-        {/* No enableSystem: dark is the default outright, not merely the
-            fallback for anyone whose OS has not asked for light. */}
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+        {/* No enableSystem: light is the default outright, not merely the
+            fallback for anyone whose OS has not asked for dark. */}
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
           <Toaster position="bottom-right" />
         </ThemeProvider>
