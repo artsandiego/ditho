@@ -50,8 +50,9 @@ export function PresetUpload({
             className="h-8 gap-1.5 rounded-lg px-2.5 text-xs sm:px-3"
           >
             <FileUp className="size-3.5" strokeWidth={1.75} />
-            {/* The label is the first thing to go when the header runs out of
-                room; the icon and the tooltip carry it from there. */}
+            {/* Shortened rather than dropped on a narrow header: an icon alone
+                is a guess, and "Preset" beside an upload arrow is not. */}
+            <span className="sm:hidden">Upload Preset</span>
             <span className="hidden sm:inline">Upload Preset</span>
           </Button>
         </TooltipTrigger>
