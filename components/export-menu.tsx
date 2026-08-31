@@ -1,6 +1,7 @@
 "use client"
 
 import { Check, ChevronDown, Download, FileJson, Share2 } from "lucide-react"
+import posthog from "posthog-js"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -53,6 +54,7 @@ export function ExportMenu({
   const downloadPreset = () => {
     const blob = new Blob([presetToJson(settings)], { type: "application/json" })
     saveBlob(blob, presetFilename(settings))
+    posthog.capture("preset_downloaded")
   }
 
   const sharePreset = async () => {
@@ -63,6 +65,7 @@ export function ExportMenu({
     if (touch && typeof navigator.share === "function") {
       try {
         await navigator.share({ title: "Ditho preset", url: link })
+        posthog.capture("preset_shared", { share_method: "native" })
         return
       } catch (error) {
         if ((error as Error)?.name === "AbortError") return
@@ -72,6 +75,7 @@ export function ExportMenu({
     try {
       await navigator.clipboard.writeText(link)
       setCopied(true)
+      posthog.capture("preset_shared", { share_method: "clipboard" })
     } catch {
       toast.error("Could not copy the link.")
     }
