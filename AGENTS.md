@@ -35,6 +35,8 @@ File -> decoded <img> -> crop to canvas (capped 2400px)
 - Tests: vitest, node environment, `*.test.ts` beside the source. A new kernel
   needs a test.
 - Before claiming done: pnpm typecheck && pnpm lint && pnpm test && pnpm build
+- This repo is public. Keep PR descriptions short and plain: what changed and
+  why, a few lines. Never paste raw logs, terminal output or absolute paths.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
