@@ -1,5 +1,4 @@
 import { downscaleCanvas, readImageData } from "@/lib/image/canvas"
-
 import { applyCurve, toneCurve } from "./adjust"
 import { DEFAULT_IMAGE_COLORS, MIN_IMAGE_COLORS } from "./extract"
 import { DEFAULT_METHOD_ID, getMethod } from "./index"
@@ -80,6 +79,32 @@ export function ditherResolution(
   }
 }
 
+let downscaled: {
+  source: HTMLCanvasElement
+  width: number
+  height: number
+  result: HTMLCanvasElement
+} | null = null
+
+function cachedDownscale(
+  source: HTMLCanvasElement,
+  width: number,
+  height: number,
+): HTMLCanvasElement {
+  if (
+    downscaled &&
+    downscaled.source === source &&
+    downscaled.width === width &&
+    downscaled.height === height
+  ) {
+    return downscaled.result
+  }
+
+  const result = downscaleCanvas(source, width, height)
+  downscaled = { source, width, height, result }
+  return result
+}
+
 const FALLBACK: RGB[] = [
   [0, 0, 0],
   [255, 255, 255],
@@ -119,7 +144,7 @@ export function renderDither(
     isHalftone ? 1 : settings.cellAspect,
   )
 
-  const small = downscaleCanvas(source, width, height)
+  const small = cachedDownscale(source, width, height)
   const adjusted = applyCurve(
     readImageData(small),
     toneCurve(settings.brightness, settings.contrast, settings.invert),

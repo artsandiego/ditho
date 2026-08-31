@@ -1,6 +1,7 @@
 "use client"
 
 import { Crop, Film, ImagePlus, RotateCcw, X } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -9,7 +10,7 @@ import type { EditorTab } from "@/components/controls/sections"
 import { DitherCanvas } from "@/components/dither-canvas"
 import { EditorTabs } from "@/components/editor-tabs"
 import { ExportMenu } from "@/components/export-menu"
-import { ImageCropper, initialCropState, type CropState } from "@/components/image-cropper"
+import { initialCropState, type CropState } from "@/lib/image/crop-state"
 import { InstallPrompt } from "@/components/install-prompt"
 import { Logo } from "@/components/logo"
 import { PresetUpload } from "@/components/preset-upload"
@@ -39,10 +40,15 @@ import {
   type ExportFormat,
 } from "@/lib/image/export"
 import { loadImageFile, type LoadedImage } from "@/lib/image/load"
-import { probeVideo, type VideoInfo } from "@/lib/video/probe"
-import { renderVideo } from "@/lib/video/render"
-import { videoStill } from "@/lib/video/still"
-import { checkVideoSupport } from "@/lib/video/support"
+import type { VideoInfo } from "@/lib/video/probe"
+
+const ImageCropper = dynamic(
+  () => import("@/components/image-cropper").then((m) => m.ImageCropper),
+  {
+    ssr: false,
+    loading: () => <div className="dot-field min-h-0 flex-1" />,
+  },
+)
 
 type Stage = "upload" | "crop" | "edit"
 
@@ -139,14 +145,24 @@ export default function Home() {
     try {
       const isVideo = file.type.startsWith("video/")
 
+      let info: VideoInfo | null = null
+      let loaded: LoadedImage
+
       if (isVideo) {
+        const [{ checkVideoSupport }, { probeVideo }, { videoStill }] = await Promise.all([
+          import("@/lib/video/support"),
+          import("@/lib/video/probe"),
+          import("@/lib/video/still"),
+        ])
+
         const support = await checkVideoSupport()
         if (!support.supported) throw new Error(support.reason)
-      }
 
-      const info = isVideo ? await probeVideo(file) : null
-      const start = info ? info.duration / 3 : 0
-      const loaded = info ? await videoStill(info, start) : await loadImageFile(file)
+        info = await probeVideo(file)
+        loaded = await videoStill(info, info.duration / 3)
+      } else {
+        loaded = await loadImageFile(file)
+      }
 
       if (info) {
         setNotice(true)
@@ -219,6 +235,8 @@ export default function Home() {
     setRender({ frames: 0, total: video.frames })
 
     try {
+      const { renderVideo } = await import("@/lib/video/render")
+
       const out = await renderVideo({
         input: video.input,
         crop: cropState.area,

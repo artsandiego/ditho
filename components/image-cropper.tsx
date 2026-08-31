@@ -1,27 +1,12 @@
 "use client"
 
 import { Check } from "lucide-react"
-import Cropper, { type Area, type Point } from "react-easy-crop"
+import Cropper from "react-easy-crop"
 
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import type { CropState } from "@/lib/image/crop-state"
 import type { LoadedImage } from "@/lib/image/load"
-
-export interface CropState {
-  crop: Point
-  zoom: number
-  aspect: number
-  area: Area | null
-}
-
-export function initialCropState(image: LoadedImage): CropState {
-  return {
-    crop: { x: 0, y: 0 },
-    zoom: 1,
-    aspect: image.width / image.height,
-    area: null,
-  }
-}
 
 const PRESETS = [
   { label: "1:1", value: 1 },
