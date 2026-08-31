@@ -2,6 +2,7 @@
 
 import { Crop, Film, ImagePlus, RotateCcw, X } from "lucide-react"
 import dynamic from "next/dynamic"
+import posthog from "posthog-js"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -137,6 +138,7 @@ export default function Home() {
         return
       }
       setSettings(loaded)
+      posthog.capture("preset_loaded", { source: "upload" })
       toast.success("Preset loaded. Choose a photo or video to put it on.")
       return
     }
@@ -181,6 +183,11 @@ export default function Home() {
       setCropState(initialCropState(loaded))
       setCropped(null)
       setStage("crop")
+      posthog.capture("media_uploaded", {
+        media_type: isVideo ? "video" : "image",
+        width: loaded.width,
+        height: loaded.height,
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not read that file.")
     } finally {
@@ -200,6 +207,10 @@ export default function Home() {
         imageColors: readImageColors(canvas, current.imageColorCount),
       }))
       setStage("edit")
+      posthog.capture("crop_applied", {
+        media_type: video ? "video" : "image",
+        aspect_ratio: Number((cropState.area.width / cropState.area.height).toFixed(3)),
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not apply that crop.")
     }
@@ -248,6 +259,10 @@ export default function Home() {
       })
       const stem = video.name.replace(/\.[^./]+$/, "") || "video"
       saveBlob(out.blob, `${stem}-${settings.methodId}.mp4`)
+      posthog.capture("video_exported", {
+        method_id: settings.methodId,
+        frame_count: video.frames,
+      })
     } catch (error) {
       if ((error as Error)?.name !== "AbortError") {
         toast.error(error instanceof Error ? error.message : "Render failed.")
@@ -268,6 +283,12 @@ export default function Home() {
         exportFilename(source.name, settings.methodId, format),
         format,
       )
+      posthog.capture("image_exported", {
+        format,
+        method_id: settings.methodId,
+        width: result.image.width,
+        height: result.image.height,
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export failed.")
     }

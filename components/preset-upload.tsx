@@ -1,6 +1,7 @@
 "use client"
 
 import { FileUp } from "lucide-react"
+import posthog from "posthog-js"
 import { useRef } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +27,7 @@ export function PresetUpload({
     }
 
     onLoad(loaded)
+    posthog.capture("preset_loaded", { source: "editor" })
     toast.success("Preset applied.")
   }
 
